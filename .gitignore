@@ -21,3 +21,4 @@ ENV/
 # Other
 *.log
 .DS_Store
+service-account.json
