@@ -11,14 +11,20 @@ app = Flask(__name__)
 
 # Initialize Earth Engine using service-account.json
 try:
+    # Use absolute path for the service account key file on PythonAnywhere
+    # Reference the home directory for PythonAnywhere
+    service_account_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'service-account.json')
+    
+    print(f"Looking for service account file at: {service_account_path}")
+    
     # Read the service account email from the JSON file
-    with open('service-account.json', 'r') as f:
+    with open(service_account_path, 'r') as f:
         service_account_info = json.load(f)
     
     service_account = service_account_info["client_email"]
     
-    print("Using service-account.json file for authentication")
-    credentials = ee.ServiceAccountCredentials(service_account, 'service-account.json')
+    print(f"Using service-account.json file for authentication from {service_account_path}")
+    credentials = ee.ServiceAccountCredentials(service_account, service_account_path)
     ee.Initialize(credentials)
     
     print(f"Earth Engine initialized with service account: {service_account}")
@@ -34,7 +40,7 @@ except Exception as e:
     
     # Do not use interactive auth for web server deployment
     # Instead, raise a clear error
-    raise RuntimeError("Earth Engine authentication failed. Service account authentication is required for web deployment.")
+    raise RuntimeError(f"Earth Engine authentication failed. Service account authentication is required for web deployment. Error: {str(e)}")
 
 # Default coordinates (can be overridden by user selection)
 DEFAULT_COORDS = [
