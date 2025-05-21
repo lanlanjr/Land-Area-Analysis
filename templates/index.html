@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GIS Land Area Analysis</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -15,17 +15,66 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            overflow-x: hidden;
         }
         .container {
             display: flex;
+            flex-direction: column;
             height: 100vh;
         }
         .sidebar {
-            width: 400px;
-            padding: 20px;
+            width: 100%;
+            padding: auto;
             background-color: #f8f9fa;
             overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: auto;
+            max-height: 50vh;
+            transition: max-height 0.3s ease;
+            position: relative;
+            z-index: 100;
+        }
+        
+        /* Sidebar toggle for mobile */
+        .sidebar-toggle {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            text-align: center;
+            font-size: 18px;
+            line-height: 36px;
+            cursor: pointer;
+            z-index: 101;
+        }
+        
+        .sidebar.collapsed {
+            max-height: 60px;
+            overflow: hidden;
+        }
+        
+        /* Desktop styles */
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+            }
+            .sidebar {
+                width: 400px;
+                max-height: 100vh;
+                height: 100vh;
+            }
+            .sidebar-toggle {
+                display: none !important;
+            }
+            .sidebar.collapsed {
+                max-height: 100vh;
+            }
         }
         .sidebar-section {
             margin-bottom: 25px;
@@ -180,20 +229,32 @@
         .map-container {
             flex: 1;
             position: relative;
+            height: 50vh;
+            min-height: 300px;
         }
+        
+        @media (min-width: 992px) {
+            .map-container {
+                height: 100vh;
+            }
+        }
+        
         #map {
             height: 100%;
             width: 100%;
         }
+        
         .form-group {
             margin-bottom: 15px;
         }
+        
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
             color: #495057;
         }
+        
         input[type="date"] {
             width: 100%;
             padding: 10px;
@@ -311,13 +372,26 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-direction: column;
         }
         
         .year-selector select {
-            flex: 1;
-            padding: 8px;
+            width: 100%;
+            padding: 12px 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        
+        @media (min-width: 576px) {
+            .year-selector {
+                flex-direction: row;
+            }
+            
+            .year-selector select {
+                flex: 1;
+                margin-bottom: 0;
+            }
         }
         
         /* Time series button styles removed - now using .primary-btn and .secondary-btn */
@@ -360,28 +434,126 @@
             left: 50%;
             transform: translateX(-50%);
             background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
             z-index: 1000;
             display: none;
+            max-width: 90%;
+            width: 700px;
+            box-sizing: border-box;
         }
         
         .animation-controls.visible {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 10px;
-            width: 80%;
-            max-width: 700px;
+            gap: 12px;
+        }
+        
+        /* Mobile styling for animation controls */
+        @media (max-width: 768px) {
+            .animation-controls {
+                bottom: 10px;
+                padding: 10px;
+                border-radius: 6px;
+                width: 95%;
+            }
+            
+            .animation-controls.visible {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .animation-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .animation-primary-row {
+                margin-bottom: 4px;
+            }
+            
+            .timeline-slider {
+                width: 100%;
+                margin: 8px 0;
+                height: 30px;
+            }
+            
+            .year-display {
+                font-size: 16px;
+                font-weight: bold;
+                min-width: 50px;
+                text-align: center;
+                background-color: #f0f0f0;
+                border-radius: 4px;
+                padding: 4px 6px;
+            }
+            
+            .play-pause-btn {
+                flex: 1;
+                max-width: 100px;
+                padding: 8px 12px;
+                font-size: 15px;
+            }
+            
+            .speed-control {
+                display: flex;
+                align-items: center;
+                flex: 1;
+                justify-content: flex-end;
+            }
+            
+            .speed-control select {
+                padding: 8px;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                background-color: #f8f8f8;
+                min-width: 100px;
+            }
+        }
+        
+        /* Desktop styling */
+        @media (min-width: 769px) {
+            .animation-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .play-pause-btn {
+                min-width: 80px;
+            }
+            
+            .timeline-slider {
+                flex-grow: 1;
+                margin: 0 10px;
+            }
         }
         
         .play-pause-btn {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 5px 15px;
-            border-radius: 3px;
+            padding: 6px 15px;
+            border-radius: 4px;
             cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: background-color 0.2s;
+        }
+        
+        .play-pause-btn:hover {
+            background: #3e8e41;
+        }
+        
+        .play-pause-btn:active {
+            transform: scale(0.98);
         }
         
         .year-display {
@@ -391,14 +563,59 @@
         }
         
         .timeline-slider {
-            flex-grow: 1;
-            margin: 0 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #e0e0e0;
+            outline: none;
+            border-radius: 3px;
+            width: 100%;
+            margin: 12px 0;
+        }
+        
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .timeline-slider::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        /* Enhanced slider for touch devices */
+        @media (pointer: coarse) {
+            .timeline-slider {
+                height: 10px;
+            }
+            
+            .timeline-slider::-webkit-slider-thumb {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .timeline-slider::-moz-range-thumb {
+                width: 28px;
+                height: 28px;
+            }
         }
         
         .speed-control {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
         }
         
         .speed-label {
@@ -456,6 +673,8 @@
             left: 10px;
             bottom: 10px;
             z-index: 1000;
+            max-width: 120px;
+            font-size: 12px;
         }
         
         .map-type-btn-container {
@@ -463,6 +682,13 @@
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             border-radius: 4px;
             overflow: hidden;
+        }
+        
+        @media (min-width: 576px) {
+            .map-type-control {
+                max-width: none;
+                font-size: 14px;
+            }
         }
         
         .map-type-label {
@@ -524,16 +750,26 @@
         
         .map-controls-panel {
             position: absolute;
-            top: 10px;
+            bottom: 50px;
             right: 10px;
             z-index: 1000;
             background: white;
             border-radius: 4px;
             padding: 8px 12px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
-            width: 250px;
+            width: 80%;
+            max-width: 250px;
+        }
+        
+        @media (min-width: 992px) {
+            .map-controls-panel {
+                top: 10px;
+                bottom: auto;
+                max-height: 300px;
+                width: 250px;
+            }
         }
         
         .map-controls-header {
@@ -591,6 +827,58 @@
             margin-left: 8px;
             font-size: 13px;
             cursor: pointer;
+        }
+        
+        /* Loading Screen Styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .loading-subtext {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            max-width: 80%;
         }
         
         .color-indicator {
@@ -715,8 +1003,16 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+        <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
+    </div>
+    
     <div class="container">
         <div class="sidebar">
+            <button class="sidebar-toggle">≡</button>
             <h2 style="margin-bottom: 25px; color: #2c3e50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Land Area Analysis</h2>
             
             <div class="sidebar-section">
@@ -997,17 +1293,19 @@
                 </div>
             </div>
             <div class="animation-controls" id="animation-controls">
-                <button class="play-pause-btn" id="play-pause-btn">Play</button>
-                <span class="year-display" id="year-display"></span>
-                <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="100" value="0">
-                <div class="speed-control">
-                    <span class="speed-label">Speed:</span>
-                    <select id="animation-speed">
-                        <option value="2000">Slow</option>
-                        <option value="1000" selected>Normal</option>
-                        <option value="500">Fast</option>
-                    </select>
+                <div class="animation-row animation-primary-row">
+                    <button class="play-pause-btn" id="play-pause-btn">Play</button>
+                    <span class="year-display" id="year-display"></span>
+                    <div class="speed-control">
+                        <span class="speed-label">Speed:</span>
+                        <select id="animation-speed">
+                            <option value="2000">Slow</option>
+                            <option value="1000" selected>Normal</option>
+                            <option value="500">Fast</option>
+                        </select>
+                    </div>
                 </div>
+                <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="100" value="0">
             </div>
         </div>
     </div>
@@ -1017,6 +1315,80 @@
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script>
+        // Mobile responsiveness and loading screen functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile sidebar toggle functionality
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (sidebarToggle) {
+                // Show the toggle button on mobile
+                sidebarToggle.style.display = 'block';
+                
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '≡' : '×';
+                });
+            }
+            
+            // Handle map resize when orientation changes
+            window.addEventListener('resize', function() {
+                if (window.map) {
+                    window.map.invalidateSize();
+                }
+            });
+            
+            // Initialize loading screen functions
+            // Loading screen timeout protection
+            let loadingTimeout = null;
+            const MAX_LOADING_TIME = 120000; // 2 minutes maximum loading time
+            
+            window.showLoading = function(message, subtext) {
+                const overlay = document.getElementById('loadingOverlay');
+                const textElement = document.getElementById('loadingText');
+                const subtextElement = document.getElementById('loadingSubtext');
+                
+                if (message) {
+                    textElement.textContent = message;
+                } else {
+                    textElement.textContent = 'Processing...';
+                }
+                
+                if (subtext) {
+                    subtextElement.textContent = subtext;
+                    subtextElement.style.display = 'block';
+                } else {
+                    subtextElement.textContent = 'This may take a few moments';
+                    subtextElement.style.display = 'block';
+                }
+                
+                overlay.classList.add('active');
+                
+                // Clear any existing timeout
+                if (loadingTimeout) {
+                    clearTimeout(loadingTimeout);
+                }
+                
+                // Set safety timeout to automatically hide loading after maximum time
+                loadingTimeout = setTimeout(function() {
+                    console.warn('Loading screen timeout reached. Force hiding loading screen.');
+                    hideLoading();
+                    alert('The operation is taking longer than expected. It may still be processing in the background.');
+                }, MAX_LOADING_TIME);
+            };
+            
+            window.hideLoading = function() {
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.remove('active');
+                
+                // Clear any active loading timeout
+                if (loadingTimeout) {
+                    clearTimeout(loadingTimeout);
+                    loadingTimeout = null;
+                }
+            };
+        });
+        
         // Initialize model tooltip functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Set up tooltip icon click handlers
@@ -1846,7 +2218,7 @@
             animationState.currentLayer.addTo(map);
             
             // Update UI
-            document.getElementById('year-display').textContent = tileData.year;
+            document.getElementById('year-display').textContent = `Year: ${tileData.year}`;
             document.getElementById('timeline-slider').value = index;
             
             // Update the statistics in the sidebar for the current year
@@ -3144,6 +3516,9 @@
                 return;
             }
 
+            // Show loading screen
+            showLoading('Analyzing Time Series', `Processing data from ${startYear} to ${endYear}. This may take a while...`);
+
             // Clear all map layers for a fresh analysis
             clearAllMapLayers();
 
@@ -3163,12 +3538,18 @@
                             window.dynamicWorldTimeseriesData = result.timeseriesData;
                             displayDynamicWorldTimeSeries(result.timeseriesData, result.mapTiles);
                             document.getElementById('results').innerHTML = '<p>Dynamic World time series analysis complete!</p>';
+                            // Hide loading screen
+                            hideLoading();
                         } else {
                             document.getElementById('results').innerHTML = '<p class="error">No Dynamic World data found for the selected time range.</p>';
+                            // Hide loading screen
+                            hideLoading();
                         }
                     })
                     .catch(error => {
                         document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                        // Hide loading screen on error
+                        hideLoading();
                     });
             } else {
                 // Process NDVI time series (default)
@@ -3211,12 +3592,18 @@
                     }
                     
                         document.getElementById('results').innerHTML = '<p>NDVI time series analysis complete!</p>';
+                        // Hide loading screen
+                        hideLoading();
                 } else {
                     document.getElementById('results').innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                    // Hide loading screen
+                    hideLoading();
                 }
             })
             .catch(error => {
                 document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                // Hide loading screen on error
+                hideLoading();
             });
             }
         });
@@ -3287,6 +3674,9 @@
             // Reset all chart canvases and Chart.js registry first
             resetChartCanvases();
             
+            // Show loading screen for forecasting
+            showLoading('Generating Forecast', 'Calculating future patterns based on historical data...');
+            
             const modelType = document.querySelector('input[name="model-type"]:checked').value;
             console.log('Selected model type:', modelType);
             
@@ -3316,9 +3706,13 @@
             // Update charts with forecast
             updateChartsWithForecast(yearlyStats, forecastData);
                 console.log('Charts updated with forecast data');
+                // Hide loading screen after forecast is complete
+                hideLoading();
             } catch (error) {
                 console.error('Error generating forecast:', error);
                 alert('Error generating forecast: ' + error.message);
+                // Hide loading screen on error
+                hideLoading();
             }
             } else if (modelType === 'dynamicworld') {
                 // Run Dynamic World forecast
@@ -3336,15 +3730,21 @@
                     // Generate and display Dynamic World forecast
                     generateDynamicWorldForecast(dynamicWorldTimeseries, forecastYears);
                     console.log('Dynamic World forecast completed successfully');
+                    // Hide loading screen after forecast is complete
+                    hideLoading();
                 } catch (error) {
                     console.error('Error in Dynamic World forecast generation:', error);
                     alert('Error generating forecast: ' + error.message);
+                    // Hide loading screen on error
+                    hideLoading();
                 }
             }
         });
         
         // Save area button click handler
         document.getElementById('save-area-btn').addEventListener('click', function() {
+            // Show loading screen
+            showLoading('Saving Selected Area', 'Processing and storing your selected area...');
             if (!currentCoordinates) {
                 document.getElementById('results').innerHTML = '<p class="error">Please draw an area on the map first.</p>';
                 return;
@@ -3364,12 +3764,18 @@
             .then(data => {
                 if (data.success) {
                     document.getElementById('results').innerHTML = '<p>Area saved successfully!</p>';
+                    // Hide loading screen
+                    hideLoading();
                 } else {
                     document.getElementById('results').innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                    // Hide loading screen
+                    hideLoading();
                 }
             })
             .catch(error => {
                 document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                // Hide loading screen on error
+                hideLoading();
             });
         });
         
@@ -4321,6 +4727,11 @@ function displayESAWorldCoverResults(worldcoverData) {
             // Get the selected year
             const selectedYear = document.getElementById('land-cover-year').value;
             
+            // Show loading screen
+            showLoading('Analyzing Land Cover', selectedYear ? 
+                `Processing land cover data for ${selectedYear}...` : 
+                'Processing latest land cover data...');
+            
             if (modelType === 'ndvi') {
                 // Run the NDVI-based land cover analysis
                 const selectedYear = document.getElementById('land-cover-year').value;
@@ -4341,6 +4752,9 @@ function displayESAWorldCoverResults(worldcoverData) {
             
             // Display the results
             displayLandCoverResults(landCoverResults);
+                
+            // Hide loading screen
+            hideLoading();
             } else if (modelType === 'dynamicworld') {
                 // Show loading indicator
                 document.getElementById('results').innerHTML = '<div class="loading">Loading Dynamic World data...</div>';
@@ -4362,12 +4776,18 @@ function displayESAWorldCoverResults(worldcoverData) {
                         if (data.success) {
                             // Display the results
                             displayDynamicWorldResults(data.dynamicworld_data);
+                            // Hide loading screen
+                            hideLoading();
                         } else {
                             document.getElementById('results').innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                            // Hide loading screen
+                            hideLoading();
                         }
                     })
                     .catch(error => {
                         document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                        // Hide loading screen on error
+                        hideLoading();
                     });
                 } else {
                     // Get latest Dynamic World data
@@ -4375,9 +4795,13 @@ function displayESAWorldCoverResults(worldcoverData) {
                         .then(dynamicWorldData => {
                             // Display the results
                             displayDynamicWorldResults(dynamicWorldData);
+                            // Hide loading screen
+                            hideLoading();
                         })
                         .catch(error => {
                             document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                            // Hide loading screen on error
+                            hideLoading();
                         });
                 }
             }
@@ -4916,9 +5340,15 @@ function displayESAWorldCoverResults(worldcoverData) {
                 
                 // Create a summary of significant changes
                 displayDynamicWorldForecastSummary(years, forecastYears, landCoverClasses, forecasts, classColors);
+                
+                // Hide loading screen after successfully generating forecast
+                hideLoading();
             } catch (error) {
                 console.error('Error generating Dynamic World forecast:', error);
                 resultsDiv.innerHTML = `<p class="error">Error generating forecast: ${error.message}</p>`;
+                
+                // Make sure to hide loading screen on error
+                hideLoading();
             }
         }
         
