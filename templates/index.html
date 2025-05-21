@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>GIS Land Area Analysis</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -11,35 +11,56 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
+        :root {
+            --vh: 1vh;
+        }
+        
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%; /* Fallback */
+            height: calc(var(--vh, 1vh) * 100);
+            overflow: hidden;
+            position: fixed;
             font-family: Arial, sans-serif;
-            overflow-x: hidden;
+            /* Safe area insets to protect from notches and home indicators */
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            /* Fallback values for browsers that don't support env() */
+            padding-bottom: constant(safe-area-inset-bottom, 20px);
         }
         .container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100%; /* Fallback */
+            height: calc(var(--vh, 1vh) * 100);
+            width: 100%;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
         .sidebar {
             width: 100%;
-            padding: auto;
+            padding: 15px;
             background-color: #f8f9fa;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             height: auto;
-            max-height: 50vh;
-            transition: max-height 0.3s ease;
+            max-height: 50%;
+            transition: all 0.3s ease-in-out;
             position: relative;
             z-index: 100;
+            box-sizing: border-box;
         }
         
-        /* Sidebar toggle for mobile */
+        /* Sidebar toggle */
         .sidebar-toggle {
             display: none;
             position: absolute;
-            top: 10px;
+            top: 20px;
             right: 10px;
             background: #4CAF50;
             color: white;
@@ -51,12 +72,28 @@
             font-size: 18px;
             line-height: 36px;
             cursor: pointer;
-            z-index: 101;
+            z-index: 1001;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar-toggle:active {
+            transform: scale(0.95);
         }
         
         .sidebar.collapsed {
-            max-height: 60px;
+            max-height: 80px;
             overflow: hidden;
+            /* Maintain full width when collapsed */
+            width: 100%;
+            min-width: auto;
+            min-height: 80px;
+            transition: all 0.3s ease;
         }
         
         /* Desktop styles */
@@ -66,14 +103,22 @@
             }
             .sidebar {
                 width: 400px;
-                max-height: 100vh;
-                height: 100vh;
+                max-height: 100%;
+                height: 100%;
             }
             .sidebar-toggle {
-                display: none !important;
+                display: block; /* Allow toggle on all device sizes */
             }
             .sidebar.collapsed {
-                max-height: 100vh;
+                max-height: 60px;
+                width: 400px;
+                min-width: 400px;
+            }
+            
+            .map-container {
+                flex: 1;
+                transition: all 0.3s ease;
+                height: 100%;
             }
         }
         .sidebar-section {
@@ -229,13 +274,25 @@
         .map-container {
             flex: 1;
             position: relative;
-            height: 50vh;
-            min-height: 300px;
+            height: 50%;
+            min-height: 200px;
+            /* Ensure room for mobile safe area at bottom */
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            box-sizing: border-box;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Adjust map container height when sidebar is collapsed on mobile */
+        @media (max-width: 991px) {
+            .sidebar.collapsed + .map-container {
+                height: calc(100% - 80px);
+                min-height: calc(100% - 80px);
+            }
         }
         
         @media (min-width: 992px) {
             .map-container {
-                height: 100vh;
+                height: 100%;
             }
         }
         
@@ -451,69 +508,262 @@
             gap: 12px;
         }
         
+        /* Animation collapse/expand functionality */
+        .animation-collapse-btn {
+            background: rgba(0,0,0,0.03);
+            border: none;
+            color: #555;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            margin-left: 5px;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+        
+        .animation-collapse-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .animation-collapse-btn:active {
+            background-color: rgba(0,0,0,0.15);
+            transform: scale(0.95);
+        }
+        
+        .animation-controls.collapsed {
+            width: auto;
+            padding: 6px 10px;
+            border-radius: 30px;
+            opacity: 0.8;
+            max-width: min-content;
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .animation-controls.collapsed .animation-row:not(.animation-primary-row),
+        .animation-controls.collapsed .timeline-slider,
+        .animation-controls.collapsed .speed-control {
+            display: none;
+        }
+        
+        .animation-controls.collapsed .animation-collapse-btn {
+            transform: rotate(180deg);
+        }
+        
+        .animation-controls.collapsed .play-pause-btn {
+            margin-right: 4px;
+        }
+        
+        /* When collapsed, make sure year display is visible but compact */
+        .animation-controls.collapsed .year-display {
+            min-width: 44px;
+            font-size: 13px;
+            padding: 3px 4px;
+        }
+        
+        @media (max-width: 375px) {
+            .animation-controls.collapsed {
+                padding: 4px 8px;
+                border-radius: 20px;
+            }
+            
+            .animation-controls.collapsed .year-display {
+                min-width: 38px;
+                font-size: 12px;
+                padding: 2px 3px;
+            }
+            
+            .animation-controls.collapsed .play-pause-btn {
+                margin-right: 2px;
+                width: 50px;
+            }
+        }
+        
         /* Mobile styling for animation controls */
         @media (max-width: 768px) {
             .animation-controls {
-                bottom: 10px;
-                padding: 10px;
+                bottom: 15px;
+                padding: 6px;
                 border-radius: 6px;
-                width: 95%;
+                width: 85%;
+                max-width: 320px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+            
+            .animation-collapse-btn {
+                display: flex;
+                width: 24px;
+                height: 24px;
+                font-size: 14px;
+                margin-left: 3px;
             }
             
             .animation-controls.visible {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 8px;
+                gap: 4px;
             }
             
             .animation-row {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 4px;
                 width: 100%;
                 justify-content: space-between;
             }
             
             .animation-primary-row {
-                margin-bottom: 4px;
+                margin-bottom: 2px;
             }
             
             .timeline-slider {
                 width: 100%;
-                margin: 8px 0;
-                height: 30px;
+                margin: 3px 0;
+                height: 28px; /* Better touch target, but compact */
             }
             
             .year-display {
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: bold;
                 min-width: 50px;
                 text-align: center;
                 background-color: #f0f0f0;
                 border-radius: 4px;
-                padding: 4px 6px;
+                padding: 3px 6px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
             
             .play-pause-btn {
-                flex: 1;
-                max-width: 100px;
-                padding: 8px 12px;
-                font-size: 15px;
+                flex: 0 0 auto;
+                width: 70px;
+                padding: 5px 8px;
+                font-size: 13px;
+                border-radius: 4px;
+                font-weight: bold;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .play-pause-btn:active {
+                transform: scale(0.95);
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
             
             .speed-control {
                 display: flex;
                 align-items: center;
-                flex: 1;
+                flex: 0 0 auto;
                 justify-content: flex-end;
+                gap: 3px;
+            }
+            
+            .speed-label {
+                font-size: 12px;
             }
             
             .speed-control select {
-                padding: 8px;
+                padding: 5px 6px;
                 border-radius: 4px;
                 border: 1px solid #ddd;
                 background-color: #f8f8f8;
-                min-width: 100px;
+                width: 70px;
+                font-size: 12px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                -webkit-appearance: none;
+                appearance: none;
+                background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='%23888' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 6px center;
+                background-size: 8px;
+            }
+            
+            /* Extra small mobile devices */
+            @media (max-width: 375px) {
+                .animation-controls {
+                    bottom: 10px;
+                    padding: 5px;
+                    width: 95%;
+                    max-width: 300px;
+                }
+                
+                .play-pause-btn {
+                    width: 60px;
+                    padding: 4px 6px;
+                    font-size: 12px;
+                }
+                
+                .year-display {
+                    min-width: 45px;
+                    font-size: 13px;
+                    padding: 2px 4px;
+                }
+                
+                .speed-control select {
+                    width: 60px;
+                    padding: 3px 5px;
+                }
+                
+                .speed-label {
+                    font-size: 11px;
+                }
+                
+                .animation-collapse-btn {
+                    width: 22px;
+                    height: 22px;
+                    font-size: 12px;
+                }
+            }
+            
+            /* Set default collapsed state for very small screens */
+            @media (max-width: 350px) {
+                .animation-controls.visible {
+                    width: auto;
+                    padding: 6px 10px;
+                    border-radius: 30px;
+                    opacity: 0.85;
+                    max-width: min-content;
+                    bottom: 5px;
+                }
+                
+                .animation-controls.visible:not(.collapsed) {
+                    width: 85%;
+                    max-width: 300px;
+                    border-radius: 6px;
+                    padding: 5px;
+                    opacity: 1;
+                }
+                
+                .animation-controls.visible .animation-row:not(.animation-primary-row),
+                .animation-controls.visible .timeline-slider,
+                .animation-controls.visible .speed-control {
+                    display: none;
+                }
+                
+                .animation-controls.visible .animation-collapse-btn {
+                    transform: rotate(180deg);
+                }
+                
+                .animation-controls.visible.collapsed .animation-collapse-btn {
+                    transform: rotate(180deg);
+                }
+                
+                .animation-controls.visible:not(.collapsed) .animation-collapse-btn {
+                    transform: rotate(0deg);
+                }
+                
+                .animation-controls.visible:not(.collapsed) .animation-row:not(.animation-primary-row),
+                .animation-controls.visible:not(.collapsed) .timeline-slider,
+                .animation-controls.visible:not(.collapsed) .speed-control {
+                    display: flex;
+                }
             }
         }
         
@@ -554,6 +804,28 @@
         
         .play-pause-btn:active {
             transform: scale(0.98);
+        }
+        
+        .play-pause-btn.playing {
+            background-color: #ff9800;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.5); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+        
+        @media (max-width: 768px) {
+            .play-pause-btn.playing::before {
+                position: absolute;
+                font-size: 10px;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
         }
         
         .year-display {
@@ -598,17 +870,36 @@
         /* Enhanced slider for touch devices */
         @media (pointer: coarse) {
             .timeline-slider {
-                height: 10px;
+                height: 12px;
+                margin: 18px 0;
             }
             
             .timeline-slider::-webkit-slider-thumb {
-                width: 28px;
-                height: 28px;
+                width: 34px;
+                height: 34px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                border: 3px solid white;
+                transform: scale(1);
+                transition: transform 0.2s;
             }
             
             .timeline-slider::-moz-range-thumb {
-                width: 28px;
-                height: 28px;
+                width: 34px;
+                height: 34px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                border: 3px solid white;
+                transform: scale(1);
+                transition: transform 0.2s;
+            }
+            
+            .timeline-slider:active::-webkit-slider-thumb {
+                transform: scale(1.1);
+                background: #3e8e41;
+            }
+            
+            .timeline-slider:active::-moz-range-thumb {
+                transform: scale(1.1);
+                background: #3e8e41;
             }
         }
         
@@ -668,27 +959,42 @@
             vertical-align: middle;
         }
         
-        .map-type-control {
-            position: absolute;
-            left: 10px;
-            bottom: 10px;
-            z-index: 1000;
-            max-width: 120px;
-            font-size: 12px;
-        }
-        
-        .map-type-btn-container {
+        .leaflet-control-maptype {
             background: white;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             border-radius: 4px;
-            overflow: hidden;
+            z-index: 1000;
         }
         
-        @media (min-width: 576px) {
-            .map-type-control {
-                max-width: none;
-                font-size: 14px;
-            }
+        .map-type-icon-container {
+            display: flex;
+            padding-left: 30px;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .map-type-icon-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            margin: 2px;
+            background-size: cover;
+            background-position: center;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .map-type-icon-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+        
+        .map-type-icon-btn.active {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.4);
         }
         
         .map-type-label {
@@ -750,55 +1056,403 @@
         
         .map-controls-panel {
             position: absolute;
-            bottom: 50px;
+            bottom: 20px;
             right: 10px;
             z-index: 1000;
             background: white;
-            border-radius: 4px;
-            padding: 8px 12px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            max-height: 200px;
-            overflow-y: auto;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-height: 500px;
             width: 80%;
-            max-width: 250px;
+            max-width: 300px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            opacity: 0.97;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         
+        .map-controls-panel:hover {
+            opacity: 1;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* Collapsed state */
+        .map-controls-panel.collapsed {
+            width: 56px;
+            max-width: 56px;
+            height: 56px;
+            max-height: 56px;
+            padding: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(145deg, #4CAF50, #2e7d32);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            animation: gentle-pulse 3s infinite alternate;
+            backdrop-filter: none;
+        }
+        
+        @keyframes gentle-pulse {
+            0% {
+                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            }
+            100% {
+                box-shadow: 0 4px 20px rgba(76, 175, 80, 0.7);
+            }
+        }
+        
+        .map-controls-panel.collapsed:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+            animation-play-state: paused;
+        }
+        
+        .map-controls-panel.collapsed:active {
+            transform: scale(0.95);
+            transition: transform 0.1s;
+        }
+        
+        .map-controls-panel .scrollable-content {
+            overflow-y: auto;
+            max-height: calc(100% - 35px); /* Leave room for header */
+            padding-right: 5px;
+            margin-right: -5px;
+            transition: opacity 0.2s ease;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(76, 175, 80, 0.5) transparent;
+        }
+        
+        /* Style the scrollbar for webkit browsers */
+        .map-controls-panel .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .map-controls-panel .scrollable-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .map-controls-panel .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: rgba(76, 175, 80, 0.5);
+            border-radius: 6px;
+        }
+        
+        /* Desktop styling for map controls */
         @media (min-width: 992px) {
             .map-controls-panel {
                 top: 10px;
                 bottom: auto;
-                max-height: 300px;
-                width: 250px;
+                max-height: 80vh; /* 80% of viewport height to ensure it fits on screen */
+                width: 300px;
+            }
+        }
+        
+        /* Mobile styling for map controls */
+        @media (max-width: 768px) {
+            .map-controls-panel {
+                bottom: 20px;
+                right: 10px;
+                max-height: 60vh; /* 60% of viewport height for mobile */
+                width: calc(100% - 20px); /* Full width minus margins */
+                max-width: 300px;
+            }
+            
+            .map-controls-panel .scrollable-content {
+                /* Improve touch scrolling on mobile */
+                -webkit-overflow-scrolling: touch;
+                overflow-y: auto;
+                max-height: calc(60vh - 45px); /* Account for header height and padding */
+                padding-bottom: 20px; /* Extra padding at bottom for better mobile scrolling */
+            }
+            
+            /* Ensure controls are big enough for touch interaction */
+            .control-item {
+                min-height: 36px; /* Larger touch target */
+                padding: 5px 0;
+            }
+            
+            .opacity-slider {
+                height: 15px; /* Thicker slider for easier touch */
+            }
+            
+            .opacity-slider::-webkit-slider-thumb {
+                width: 22px;
+                height: 22px;
+            }
+            
+            .opacity-slider::-moz-range-thumb {
+                width: 22px;
+                height: 22px;
             }
         }
         
         .map-controls-header {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            height: 28px;
+            cursor: pointer;
+            user-select: none;
+            color: #2e7d32;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .map-controls-header::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(76, 175, 80, 0.3), transparent);
+            transition: opacity 0.3s ease;
+        }
+        
+        .map-controls-header-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 35px);
+            transition: all 0.3s ease;
+            position: relative;
+            padding-left: 2px;
+        }
+        
+        .map-controls-header-text::before {
+            content: '⚙';
+            margin-right: 6px;
+            font-size: 14px;
+            opacity: 0.8;
         }
         
         .map-controls-toggle {
-            font-size: 25px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            color: #555;
+            color: #4CAF50;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            margin-left: auto;
+            background-color: rgba(76, 175, 80, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-controls-toggle::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(76, 175, 80, 0.2) 0%, rgba(76, 175, 80, 0) 70%);
+            transform: scale(0);
+            transition: transform 0.4s ease-out;
+            z-index: -1;
+        }
+        
+        /* Icon styles when collapsed */
+        .map-controls-panel.collapsed .map-controls-toggle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 56px;
+            height: 56px;
+            color: white;
+            background-color: transparent;
+            z-index: 10;
+        }
+        
+        .map-controls-panel.collapsed .map-controls-toggle::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0);
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .map-controls-panel.collapsed .map-controls-toggle:hover::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .map-controls-panel.collapsed .map-controls-header-text,
+        .map-controls-panel.collapsed .scrollable-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .map-controls-toggle:hover {
+            color: #2e7d32;
+            background-color: rgba(76, 175, 80, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .map-controls-toggle:hover::before {
+            transform: scale(2);
+        }
+        
+        .map-controls-toggle:active {
+            transform: scale(0.9);
+            transition: transform 0.1s;
+        }
+        
+        /* Active features indicator */
+        .map-controls-panel.collapsed .active-features-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 12px;
+            height: 12px;
+            background-color: #ff9800;
+            border-radius: 50%;
+            border: 2px solid white;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .map-controls-panel.collapsed.has-active-features .active-features-indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        
+        /* Mini preview when collapsed */
+        .map-controls-panel.collapsed::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-image: linear-gradient(45deg, 
+                rgba(255,255,255,0.2) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255,255,255,0.2) 50%, 
+                rgba(255,255,255,0.2) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            background-size: 6px 6px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.5;
+            z-index: 1;
+        }
+        
+        /* Make sliders more visually appealing */
+        .opacity-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.8));
+            outline: none;
+            margin: 12px 0 6px 0;
+            width: 100%;
+        }
+        
+        .opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            border: 2px solid white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        
+        .opacity-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            border: 2px solid white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        
+        .opacity-slider::-webkit-slider-thumb:hover,
+        .opacity-slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .opacity-value {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            user-select: none;
         }
         
         .map-controls-content {
-            display: block;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            padding-bottom: 10px; /* Add padding at the bottom for better spacing */
+            position: relative; /* For positioning the back-to-top button */
         }
         
-        .map-controls-content.collapsed {
-            display: none;
+        /* Back to top button for mobile scrolling */
+        .back-to-top {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(76, 175, 80, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1010;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            transform: translateY(20px);
+            cursor: pointer;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .back-to-top:active {
+            transform: scale(0.95);
         }
         
         .control-section {
-            margin-bottom: 12px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            padding-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-section:hover {
+            background-color: rgba(76, 175, 80, 0.05);
+            border-radius: 6px;
+            padding-left: 5px;
         }
         
         .control-section:last-child {
@@ -807,16 +1461,34 @@
         }
         
         .control-section-title {
-            font-weight: bold;
+            font-weight: 600;
             font-size: 13px;
-            margin-bottom: 8px;
-            color: #555;
+            margin-bottom: 10px;
+            color: #444;
+            display: flex;
+            align-items: center;
+        }
+        
+        .control-section-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: rgba(0,0,0,0.06);
+            margin-left: 8px;
         }
         
         .control-item {
             display: flex;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            padding: 3px 0;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .control-item:hover {
+            background-color: rgba(76, 175, 80, 0.08);
+            padding-left: 4px;
         }
         
         .control-item:last-child {
@@ -827,7 +1499,16 @@
             margin-left: 8px;
             font-size: 13px;
             cursor: pointer;
+            transition: color 0.2s ease;
         }
+        
+        .control-item:hover label {
+            color: #2e7d32;
+        }
+        
+
+        
+        
         
         /* Loading Screen Styles */
         .loading-overlay {
@@ -1000,6 +1681,134 @@
         .expanded-content ul ul {
             margin-top: 5px;
         }
+        
+        /* Map Type Control collapsible styles */
+        .leaflet-control-maptype {
+            background: white;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            border-radius: 4px;
+            z-index: 1000;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .leaflet-control-maptype.collapsed {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: white;
+            overflow: hidden;
+        }
+        
+        .maptype-toggle-btn {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            cursor: pointer;
+            font-size: 20px;
+            color: #555;
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .maptype-toggle-btn:hover {
+            background-color: #f4f4f4;
+        }
+        
+        .leaflet-control-maptype.collapsed .map-type-icon-container {
+            transform: translateX(100px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .leaflet-control-maptype:not(.collapsed) .maptype-toggle-btn {
+            background-color: transparent;
+        }
+        
+        .maptype-toggle-btn::before {
+            content: '🗺️';
+        }
+        
+        /* Tooltip for collapsed state */
+        .maptype-toggle-btn::after {
+            content: 'Map Type';
+            position: absolute;
+            white-space: nowrap;
+            right: -5px;
+            top: 50%;
+            transform: translate(100%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        
+        .leaflet-control-maptype.collapsed .maptype-toggle-btn:hover::after {
+            opacity: 1;
+        }
+        
+        .map-type-label {
+            display: block;
+            padding: 8px 10px;
+            background: #f8f8f8;
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #e0e0e0;
+            color: #555;
+            text-align: center;
+        }
+        
+        /* Leaflet Map Positioning Fixes */
+        .leaflet-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 1 !important;
+        }
+        
+        /* Fix for drawing tools when sidebar is collapsed */
+        .leaflet-draw.leaflet-control {
+            z-index: 1000;
+            position: relative;
+        }
+        
+        /* Prevent unwanted scrolling in map container */
+        .map-container {
+            overflow: hidden;
+        }
+        
+        /* Ensure proper touch handling on mobile */
+        @media (max-width: 991px) {
+            .leaflet-touch .leaflet-draw-toolbar a {
+                height: 34px;
+                width: 34px;
+                line-height: 34px;
+            }
+            
+            /* Increase touch targets for mobile drawing */
+            .leaflet-touch .leaflet-control-layers, 
+            .leaflet-touch .leaflet-bar {
+                border-width: 2px;
+            }
+            
+            /* Fix position issues when sidebar collapses */
+            .sidebar.collapsed ~ .map-container .leaflet-control-container {
+                transition: all 0.3s ease;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1009,6 +1818,7 @@
         <div class="loading-text" id="loadingText">Processing...</div>
         <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
     </div>
+    
     
     <div class="container">
         <div class="sidebar">
@@ -1213,25 +2023,26 @@
         </div>
         <div class="map-container">
             <div id="map"></div>
-            <div class="map-type-control">
-                <div class="map-type-btn-container">
-                    <span class="map-type-label">Map Type</span>
-                    <button class="map-type-btn active" data-map-type="topo">
-                        <span class="map-type-icon topo-icon"></span>Topo Map
-                    </button>
-                    <button class="map-type-btn" data-map-type="street">
-                        <span class="map-type-icon street-icon"></span>Street Map
-                    </button>
-                    <button class="map-type-btn" data-map-type="satellite">
-                        <span class="map-type-icon satellite-icon"></span>Satellite
-                    </button>
-            </div>
-        </div>
-            <div class="map-controls-panel">
+            <!-- Map type control will be added by JavaScript -->
+            
+            <div class="map-controls-panel collapsed" id="mapControlsPanel">
+                <div class="active-features-indicator" title="Active map features"></div>
                 <div class="map-controls-header">
-                    <span>Map Features</span>
-                    <span class="map-controls-toggle">−</span>
+                    <span class="map-controls-header-text">Map Features</span>
+                    <div class="map-controls-toggle" id="mapControlsToggle" title="Expand Map Features">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 3.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/>
+                            <path fill-rule="evenodd" d="M7.646 8.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8 9.707l-1.646 1.647a.5.5 0 0 1-.708-.708l2-2z"/>
+                        </svg>
                 </div>
+                </div>
+                <!-- Back to top button for mobile scrolling -->
+                <div class="back-to-top" id="backToTop" title="Back to top">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"/>
+                    </svg>
+                </div>
+                <div class="scrollable-content">
                 <div class="map-controls-content">
                     <div class="control-section">
                         <div class="control-section-title">Base Map Opacity</div>
@@ -1290,20 +2101,22 @@
                         <input type="range" id="area-opacity" class="opacity-slider" min="0" max="100" value="80">
                         <div class="opacity-value" id="area-opacity-value">80%</div>
                     </div>
+                    </div>
                 </div>
             </div>
             <div class="animation-controls" id="animation-controls">
                 <div class="animation-row animation-primary-row">
-                    <button class="play-pause-btn" id="play-pause-btn">Play</button>
-                    <span class="year-display" id="year-display"></span>
-                    <div class="speed-control">
-                        <span class="speed-label">Speed:</span>
-                        <select id="animation-speed">
-                            <option value="2000">Slow</option>
-                            <option value="1000" selected>Normal</option>
-                            <option value="500">Fast</option>
-                        </select>
-                    </div>
+                <button class="play-pause-btn" id="play-pause-btn">Play</button>
+                <span class="year-display" id="year-display"></span>
+                <div class="speed-control">
+                    <span class="speed-label">Speed:</span>
+                    <select id="animation-speed">
+                        <option value="2000">Slow</option>
+                        <option value="1000" selected>Normal</option>
+                        <option value="500">Fast</option>
+                    </select>
+                </div>
+                <button class="animation-collapse-btn" id="animation-collapse-btn" title="Collapse controls">↑</button>
                 </div>
                 <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="100" value="0">
             </div>
@@ -1315,26 +2128,111 @@
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script>
+        // Calculate and set proper viewport height to handle mobile browser chrome
+        function setMobileViewportHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        
+        // Initialize and update on resize
+        window.addEventListener('resize', setMobileViewportHeight);
+        window.addEventListener('orientationchange', setMobileViewportHeight);
+        
         // Mobile responsiveness and loading screen functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // Mobile sidebar toggle functionality
+            // Set initial viewport height
+            setMobileViewportHeight();
+            
+            // Handle sidebar toggle - debug implementation
             const sidebarToggle = document.querySelector('.sidebar-toggle');
             const sidebar = document.querySelector('.sidebar');
             
-            if (sidebarToggle) {
-                // Show the toggle button on mobile
-                sidebarToggle.style.display = 'block';
+            if (sidebarToggle && sidebar) {
+                console.log("Sidebar toggle found:", sidebarToggle);
+                console.log("Sidebar found:", sidebar);
                 
-                sidebarToggle.addEventListener('click', function() {
+                // Function to check if we're on mobile and show/hide toggle accordingly
+                function updateSidebarToggleVisibility() {
+                    // Consider devices with width less than 768px as mobile
+                    if (window.innerWidth < 768) {
+                        sidebarToggle.style.display = 'block';
+                    } else {
+                        sidebarToggle.style.display = 'none';
+                        // Ensure sidebar is expanded on desktop
+                        sidebar.classList.remove('collapsed');
+                    }
+                }
+                
+                // Run initially
+                updateSidebarToggleVisibility();
+                
+                // Remove any existing click event listeners
+                const newToggle = sidebarToggle.cloneNode(true);
+                sidebarToggle.parentNode.replaceChild(newToggle, sidebarToggle);
+                
+                // Add new event listener
+                newToggle.addEventListener('click', function() {
+                    console.log("Toggle clicked");
                     sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '≡' : '×';
+                    this.textContent = sidebar.classList.contains('collapsed') ? '≡' : '×';
+                    console.log("Sidebar collapsed:", sidebar.classList.contains('collapsed'));
+                    
+                    // Force map to recalculate its size and fill available space
+                    try {
+                        if (window.map) {
+                            console.log("Invalidating map size");
+                            
+                            // Add a container resize observer to ensure map reacts to all size changes
+                            const mapContainer = document.querySelector('.map-container');
+                            
+                            // Multiple invalidations to ensure proper rendering
+                            // Immediate invalidation
+                            window.map.invalidateSize();
+                            
+                            // After a short delay to allow initial CSS transitions
+                            setTimeout(function() {
+                                window.map.invalidateSize({animate: true});
+                                console.log("Map size invalidated (first pass)");
+                                
+                                // And again after the full transition completes
+                                setTimeout(function() {
+                                    window.map.invalidateSize({animate: true});
+                                    console.log("Map size invalidated (second pass)");
+                                    
+                                    // Final invalidation to ensure all map controls and drawing tools are properly positioned
+                                    setTimeout(function() {
+                                        window.map.invalidateSize(true);
+                                        console.log("Map size invalidated (final pass)");
+                                    }, 100);
+                                }, 300);
+                            }, 50);
+                        } else {
+                            console.warn("Map object not found");
+                        }
+                    } catch (error) {
+                        console.error("Error invalidating map size:", error);
+                    }
+                });
+                
+                // Listen for window resize events
+                window.addEventListener('resize', updateSidebarToggleVisibility);
+            } else {
+                console.error("Sidebar toggle elements not found", {
+                    sidebarToggle: sidebarToggle,
+                    sidebar: sidebar
                 });
             }
             
-            // Handle map resize when orientation changes
+            // Handle map resize when orientation changes or window is resized
             window.addEventListener('resize', function() {
                 if (window.map) {
+                    // Immediate invalidation
                     window.map.invalidateSize();
+                    
+                    // Follow-up invalidation after a short delay to ensure all transitions are complete
+                    setTimeout(function() {
+                        window.map.invalidateSize(true);
+                    }, 250);
                 }
             });
             
@@ -1552,11 +2450,224 @@
         let currentBaseMap = 'topo';
         baseMaps[currentBaseMap].addTo(map);
         
-        // Map features panel toggle
-        document.querySelector('.map-controls-toggle').addEventListener('click', function() {
-            const content = document.querySelector('.map-controls-content');
-            content.classList.toggle('collapsed');
-            this.textContent = content.classList.contains('collapsed') ? '+' : '−';
+        // Create Map Type Control for top-left corner
+        L.Control.MapTypeControl = L.Control.extend({
+            options: {
+                position: 'topleft',
+                collapsed: true
+            },
+            
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-control-maptype');
+                const iconContainer = L.DomUtil.create('div', 'map-type-icon-container', container);
+                
+                // Add toggle button
+                const toggleBtn = L.DomUtil.create('div', 'maptype-toggle-btn', container);
+                
+                // Add map type buttons
+                const mapTypes = [
+                    { type: 'topo', title: 'Topographic Map', icon: 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M22,15.5V17.5H19V21.5H17V17.5H14V21.5H12V17.5H9V21.5H7V17.5H4V15.5H7V11.5H4V9.5H7V5.5H9V9.5H12V5.5H14V9.5H17V5.5H19V9.5H22V11.5H19V15.5H22M17,11.5H14V15.5H17V11.5M12,11.5H9V15.5H12V11.5Z"/></svg>\')' },
+                    { type: 'street', title: 'Street Map', icon: 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M18.1 4.8C18.1 4.3 17.6 4 17 4H13.8C13.4 4 13 4.3 13 4.8V10.2H18.1V4.8M19.3 19.2V10.2H20.9V19.2H19.3M4.8 10.2V19.2H3.1V10.2H4.8M10.2 19.2V13.8H13.8V19.2H10.2M5.9 19.2V13.8H9.1V19.2H5.9M13.8 12.7H10.2V10.2H13.8V12.7M9.1 10.2V12.7H5.9V10.2H9.1M4.8 4.8V9.1H3.1V4.8C3.1 4.3 3.6 4 4.1 4H7.3C7.7 4 8.1 4.3 8.1 4.8V9.1H5.9V4.8H4.8M10.2 9.1V4.8H13V9.1H10.2Z"/></svg>\')' },
+                    { type: 'satellite', title: 'Satellite', icon: 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M5,18.31L8.9,15.5L6.81,13.41L5,15.54V18.31M13,15.83L9.5,13.5L13,9.8V15.83M18.04,10.4L20.27,8.17L16.31,4.21L14.08,6.44L18.04,10.4M19.93,11.08L13.8,4.96L10.04,8.72L14,12.68L19.93,11.08M4.23,10.55C4.13,11.23 4.31,11.94 4.76,12.4L10.61,18.24C11.07,18.7 11.78,18.88 12.46,18.77L19.87,17.18L14.3,11.61L8.28,14.73L7.8,14.25C6.97,13.42 6.97,12.08 7.8,11.25L12.57,6.47L8.51,6.13L4.23,10.55Z"/></svg>\')' }
+                ];
+                
+                // Create buttons for each map type
+                mapTypes.forEach(mapType => {
+                    const btn = L.DomUtil.create('div', 'map-type-icon-btn', iconContainer);
+                    btn.style.backgroundImage = mapType.icon;
+                    btn.title = mapType.title;
+                    btn.setAttribute('data-map-type', mapType.type);
+                    
+                    // Set active class for the current map type
+                    if (mapType.type === currentBaseMap) {
+                        btn.classList.add('active');
+                    }
+                    
+                    // Add click handler
+                    L.DomEvent.on(btn, 'click', function() {
+                        // Remove active class from all buttons
+                        document.querySelectorAll('.map-type-icon-btn').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        
+                        // Add active class to clicked button
+                        this.classList.add('active');
+                        
+                        // Change base map
+                        const mapType = this.getAttribute('data-map-type');
+                        changeBaseMap(mapType);
+                    });
+                    
+                    // Stop propagation of events
+                    L.DomEvent.disableClickPropagation(btn);
+                });
+                
+                // Set initial collapsed state
+                if (this.options.collapsed) {
+                    container.classList.add('collapsed');
+                }
+                
+                // Add toggle click handler
+                L.DomEvent.on(toggleBtn, 'click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    L.DomEvent.preventDefault(e);
+                    container.classList.toggle('collapsed');
+                });
+                
+                // Prevent map clicks from propagating
+                L.DomEvent.disableClickPropagation(container);
+                
+                return container;
+            }
+        });
+        
+        // Initialize MapTypeControl constructor
+        L.control.mapTypeControl = function(opts) {
+            return new L.Control.MapTypeControl(opts);
+        };
+        
+        // Add the map type control to the map
+        L.control.mapTypeControl({ position: 'topleft' }).addTo(map);
+        
+        // Function to change base map
+        function changeBaseMap(mapType) {
+            // Remove all base layers
+            Object.values(baseMaps).forEach(layer => {
+                if (map.hasLayer(layer)) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Add selected base layer
+            currentBaseMap = mapType;
+            const baseMapLayer = baseMaps[mapType];
+            
+            // Apply current opacity
+            const opacity = parseFloat(document.getElementById('base-map-opacity').value) / 100;
+            baseMapLayer.setOpacity(opacity);
+            
+            // Add to map
+            map.addLayer(baseMapLayer);
+            
+            // Ensure map is properly sized
+            map.invalidateSize();
+        }
+        
+        // Make map object available globally for proper resizing
+        window.map = map;
+        
+        // Add event handler to fix map after page is fully loaded
+        window.addEventListener('load', function() {
+            // Final map size invalidation after everything is loaded
+            setTimeout(function() {
+                if (window.map) {
+                    window.map.invalidateSize({animate: true});
+                    console.log("Map size invalidated after full page load");
+                }
+            }, 500);
+        });
+        
+        // Map features panel toggle - enhanced collapse/expand
+        document.getElementById('mapControlsToggle').addEventListener('click', function() {
+            const panel = document.getElementById('mapControlsPanel');
+            panel.classList.toggle('collapsed');
+            
+            // Update icon based on state
+            if (panel.classList.contains('collapsed')) {
+                this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 3.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/>
+                    <path fill-rule="evenodd" d="M7.646 8.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8 9.707l-1.646 1.647a.5.5 0 0 1-.708-.708l2-2z"/>
+                </svg>`;
+                this.title = "Expand Map Features";
+                
+                // Add tooltip with active features
+                updateActiveFeaturesBadge();
+            } else {
+                this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
+                </svg>`;
+                this.title = "Collapse Map Features";
+                
+                // Scroll to top when opening on mobile for better user experience
+                const scrollableContent = panel.querySelector('.scrollable-content');
+                if (scrollableContent) {
+                    scrollableContent.scrollTop = 0;
+                }
+                
+                // On mobile, make sure the panel is fully visible within the viewport
+                if (window.innerWidth <= 768) {
+                    // Give a small delay to allow CSS transitions to complete
+                    setTimeout(() => {
+                        // Ensure the panel is visible in the viewport
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 100);
+                }
+            }
+        });
+        
+        // Function to update the active features badge
+        function updateActiveFeaturesBadge() {
+            const panel = document.getElementById('mapControlsPanel');
+            let activeFeatures = [];
+            
+            // Check which features are active
+            if (document.getElementById('controls-camsur-toggle').checked) activeFeatures.push('Camarines Sur');
+            if (document.getElementById('controls-albay-toggle').checked) activeFeatures.push('Albay');
+            if (document.getElementById('waterways-toggle').checked) activeFeatures.push('Waterways');
+            if (document.getElementById('area-toggle').checked) activeFeatures.push('Selected Area');
+            if (document.getElementById('layer-toggle').checked) activeFeatures.push('NDVI Layer');
+            
+            // Update badge visibility
+            if (activeFeatures.length > 0) {
+                panel.classList.add('has-active-features');
+                const indicator = panel.querySelector('.active-features-indicator');
+                indicator.title = 'Active features: ' + activeFeatures.join(', ');
+            } else {
+                panel.classList.remove('has-active-features');
+            }
+        }
+        
+        // Listen for changes on all feature toggles
+        document.querySelectorAll('#mapControlsPanel input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateActiveFeaturesBadge);
+        });
+        
+        // Also allow clicking the header to toggle
+        document.querySelector('.map-controls-header').addEventListener('click', function(e) {
+            // Only trigger if clicking directly on the header, not on the toggle button
+            if (!e.target.closest('.map-controls-toggle')) {
+                document.getElementById('mapControlsToggle').click();
+            }
+        });
+        
+        // Handle back to top button for mobile scrolling
+        document.addEventListener('DOMContentLoaded', function() {
+            const backToTopBtn = document.getElementById('backToTop');
+            const scrollableContent = document.querySelector('.map-controls-panel .scrollable-content');
+            
+            if (backToTopBtn && scrollableContent) {
+                // Show/hide button based on scroll position
+                scrollableContent.addEventListener('scroll', function() {
+                    if (scrollableContent.scrollTop > 200 && window.innerWidth <= 768) {
+                        backToTopBtn.classList.add('visible');
+                    } else {
+                        backToTopBtn.classList.remove('visible');
+                    }
+                });
+                
+                // Scroll to top when clicking the button
+                backToTopBtn.addEventListener('click', function() {
+                    scrollableContent.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+        });
+        
+        // Initialize active features badge
+        window.addEventListener('load', function() {
+            updateActiveFeaturesBadge();
         });
         
         // Base map opacity control
@@ -2006,6 +3117,13 @@
         });
         map.addControl(drawControl);
         
+        // Fix rectangle drawing when sidebar is collapsed/expanded
+        map.on('draw:drawstart', function(e) {
+            // Force map to update its size before drawing starts
+            map.invalidateSize({animate: false});
+            console.log("Invalidating map size before drawing starts");
+        });
+        
         // Store the current drawn polygon coordinates
         let currentCoordinates = null;
         let currentNdviLayer = null;
@@ -2209,25 +3327,51 @@
         };
         
         function updateMapLayer(index) {
-            if (animationState.currentLayer) {
-                map.removeLayer(animationState.currentLayer);
+            try {
+                // Remove current layer if it exists
+                if (animationState.currentLayer) {
+                    map.removeLayer(animationState.currentLayer);
+                    animationState.currentLayer = null;
+                }
+                
+                // Validate that we have valid map tiles and the index is within range
+                if (!animationState.mapTiles || !animationState.mapTiles.length || index >= animationState.mapTiles.length) {
+                    console.error('Invalid map tiles or index out of range', {
+                        hasTiles: !!animationState.mapTiles,
+                        tileCount: animationState.mapTiles ? animationState.mapTiles.length : 0,
+                        requestedIndex: index
+                    });
+                    return;
+                }
+                
+                const tileData = animationState.mapTiles[index];
+                
+                // Validate that the tile data has a URL
+                if (!tileData || !tileData.tile_url) {
+                    console.error('Invalid tile data or missing URL', tileData);
+                    return;
+                }
+                
+                // Create and add the new layer
+                animationState.currentLayer = L.tileLayer(tileData.tile_url);
+                animationState.currentLayer.addTo(map);
+                
+                // Update UI
+                document.getElementById('year-display').textContent = `Year: ${tileData.year}`;
+                document.getElementById('timeline-slider').value = index;
+                
+                // Update the statistics in the sidebar for the current year
+                if (tileData.statistics) {
+                    displayStatistics(tileData.statistics);
+                }
+                
+                // Highlight the current year in the charts
+                highlightCurrentYearInCharts(tileData.year);
+            } catch (error) {
+                console.error('Error updating map layer:', error);
+                // Stop animation if there's an error to prevent continuous errors
+                stopAnimation();
             }
-            
-            const tileData = animationState.mapTiles[index];
-            animationState.currentLayer = L.tileLayer(tileData.tile_url);
-            animationState.currentLayer.addTo(map);
-            
-            // Update UI
-            document.getElementById('year-display').textContent = `Year: ${tileData.year}`;
-            document.getElementById('timeline-slider').value = index;
-            
-            // Update the statistics in the sidebar for the current year
-            if (tileData.statistics) {
-                displayStatistics(tileData.statistics);
-            }
-            
-            // Highlight the current year in the charts
-            highlightCurrentYearInCharts(tileData.year);
         }
         
         function startAnimation() {
@@ -2252,25 +3396,98 @@
         }
         
         function initializeAnimation(mapTiles) {
-            animationState.mapTiles = mapTiles;
-            animationState.currentIndex = 0;
+            if (!mapTiles || mapTiles.length === 0) {
+                console.error('No map tiles provided for animation initialization');
+                return;
+            }
+            
+            console.log(`Initializing animation with ${mapTiles.length} map tiles`);
+            
+            // Reset any existing animation state
+            stopAnimation();
+            
+            // Reset the animation state completely
+            animationState = {
+                mapTiles: mapTiles,
+                currentIndex: 0,
+                isPlaying: false,
+                animationSpeed: 1000,
+                animationInterval: null,
+                currentLayer: null
+            };
             
             const controls = document.getElementById('animation-controls');
             const slider = document.getElementById('timeline-slider');
             const playPauseBtn = document.getElementById('play-pause-btn');
+            const collapseBtn = document.getElementById('animation-collapse-btn');
+            
+            // Reset play/pause button state
+            playPauseBtn.textContent = 'Play';
+            playPauseBtn.style.backgroundColor = '#4CAF50';
+            playPauseBtn.classList.remove('playing');
             
             // Show controls and set up slider
             controls.classList.add('visible');
             slider.max = mapTiles.length - 1;
             slider.value = 0;
+            
+            // Automatically collapse on very small screens
+            if (window.innerWidth <= 350) {
+                controls.classList.add('collapsed');
+                collapseBtn.textContent = '↓';
+                collapseBtn.title = 'Expand controls';
+            }
                 
             // Initial map display
             updateMapLayer(0);
             
+            // Remove any existing event listeners by cloning and replacing elements
+            // This prevents duplicate event handlers when re-initializing animations
+            
+            // Replace collapse button to remove old listeners
+            const newCollapseBtn = collapseBtn.cloneNode(true);
+            collapseBtn.parentNode.replaceChild(newCollapseBtn, collapseBtn);
+            
+            // Replace play/pause button to remove old listeners
+            const newPlayPauseBtn = playPauseBtn.cloneNode(true);
+            playPauseBtn.parentNode.replaceChild(newPlayPauseBtn, playPauseBtn);
+            
+            // Replace slider to remove old listeners
+            const newSlider = slider.cloneNode(true);
+            slider.parentNode.replaceChild(newSlider, slider);
+            
+            // Replace speed selector to remove old listeners
+            const speedSelector = document.getElementById('animation-speed');
+            const newSpeedSelector = speedSelector.cloneNode(true);
+            speedSelector.parentNode.replaceChild(newSpeedSelector, speedSelector);
+            
+            // Get fresh references to the replaced elements
+            const freshCollapseBtn = document.getElementById('animation-collapse-btn');
+            const freshPlayPauseBtn = document.getElementById('play-pause-btn');
+            const freshSlider = document.getElementById('timeline-slider');
+            const freshSpeedSelector = document.getElementById('animation-speed');
+            
+            // Setup collapse button functionality
+            freshCollapseBtn.addEventListener('click', function() {
+                controls.classList.toggle('collapsed');
+                this.textContent = controls.classList.contains('collapsed') ? '↓' : '↑';
+                this.title = controls.classList.contains('collapsed') ? 'Expand controls' : 'Collapse controls';
+            });
+            
             // Play/Pause button handler
-            playPauseBtn.addEventListener('click', () => {
+            freshPlayPauseBtn.addEventListener('click', () => {
                 animationState.isPlaying = !animationState.isPlaying;
-                playPauseBtn.textContent = animationState.isPlaying ? 'Pause' : 'Play';
+                
+                // Update button appearance and text
+                if (animationState.isPlaying) {
+                    freshPlayPauseBtn.textContent = 'Pause';
+                    freshPlayPauseBtn.style.backgroundColor = '#ff9800';
+                    freshPlayPauseBtn.classList.add('playing');
+                } else {
+                    freshPlayPauseBtn.textContent = 'Play';
+                    freshPlayPauseBtn.style.backgroundColor = '#4CAF50';
+                    freshPlayPauseBtn.classList.remove('playing');
+                }
                 
                 if (animationState.isPlaying) {
                     startAnimation();
@@ -2280,16 +3497,20 @@
             });
             
             // Timeline slider handler
-            slider.addEventListener('input', (e) => {
+            freshSlider.addEventListener('input', (e) => {
                 stopAnimation();
                 animationState.currentIndex = parseInt(e.target.value);
                 updateMapLayer(animationState.currentIndex);
                 animationState.isPlaying = false;
-                playPauseBtn.textContent = 'Play';
+                
+                // Update play/pause button appearance
+                freshPlayPauseBtn.textContent = 'Play';
+                freshPlayPauseBtn.style.backgroundColor = '#4CAF50';
+                freshPlayPauseBtn.classList.remove('playing');
             });
             
             // Animation speed handler
-            document.getElementById('animation-speed').addEventListener('change', (e) => {
+            freshSpeedSelector.addEventListener('change', (e) => {
                 animationState.animationSpeed = parseInt(e.target.value);
                 if (animationState.isPlaying) {
                     stopAnimation();
@@ -3669,55 +4890,47 @@
         
         // Run forecast button handler
         document.getElementById('run-forecast-btn').addEventListener('click', function() {
-            console.log('Forecast button clicked');
-            
-            // Reset all chart canvases and Chart.js registry first
-            resetChartCanvases();
+            const modelType = document.querySelector('input[name="model-type"]:checked').value;
             
             // Show loading screen for forecasting
             showLoading('Generating Forecast', 'Calculating future patterns based on historical data...');
             
-            const modelType = document.querySelector('input[name="model-type"]:checked').value;
-            console.log('Selected model type:', modelType);
-            
             if (modelType === 'ndvi') {
-                console.log('NDVI forecast selected');
                 // Run NDVI forecast
-            if (!window.yearlyStatsData || window.yearlyStatsData.length < 2) {
-                    console.log('No yearly stats data or insufficient data points:', window.yearlyStatsData);
-                alert('Need at least 2 years of data to create a forecast. Please run the time series analysis first.');
-                return;
-            }
-                console.log('Yearly stats data available:', window.yearlyStatsData.length, 'years');
-            
-            const forecastYears = parseInt(document.getElementById('forecast-years').value);
-            const yearlyStats = window.yearlyStatsData;
-            
-            // Get the NDVI data for forecasting
-            const years = yearlyStats.map(stat => stat.year);
-            const meanNdvi = yearlyStats.map(stat => stat.basic_stats.mean_ndvi);
-            
-            // Generate forecast
-            try {
-                console.log('Generating forecast with years:', years, 'NDVI values:', meanNdvi, 'forecast years:', forecastYears);
-                const forecastData = generateForecast(years, meanNdvi, forecastYears);
-                console.log('Forecast generated:', forecastData);
+                if (!window.yearlyStatsData || window.yearlyStatsData.length < 2) {
+                    alert('Need time series data to create a forecast. Please run the time series analysis with NDVI first.');
+                    hideLoading(); // Hide loading when no data is available
+                    return;
+                }
+                
+                try {
+                    const forecastYears = parseInt(document.getElementById('forecast-years').value);
+                    const yearlyStats = window.yearlyStatsData;
+                    const years = yearlyStats.map(stat => stat.year);
+                    const meanNdvi = yearlyStats.map(stat => stat.basic_stats.mean_ndvi);
                     
-            // Update charts with forecast
-            updateChartsWithForecast(yearlyStats, forecastData);
-                console.log('Charts updated with forecast data');
-                // Hide loading screen after forecast is complete
-                hideLoading();
-            } catch (error) {
-                console.error('Error generating forecast:', error);
-                alert('Error generating forecast: ' + error.message);
-                // Hide loading screen on error
-                hideLoading();
-            }
+                    console.log('Generating NDVI forecast with years:', yearlyStats.length, 'forecast years:', forecastYears);
+                    
+                    // Generate the forecast using linear regression
+                    const forecast = generateForecast(years, meanNdvi, forecastYears);
+                    
+                    // Update the charts with the forecast data
+                    updateChartsWithForecast(yearlyStats, forecast);
+                    
+                    console.log('NDVI forecast completed successfully');
+                    // Hide loading screen after forecast is complete
+                    hideLoading();
+                } catch (error) {
+                    console.error('Error in NDVI forecast generation:', error);
+                    alert('Error generating forecast: ' + error.message);
+                    // Hide loading screen on error
+                    hideLoading();
+                }
             } else if (modelType === 'dynamicworld') {
                 // Run Dynamic World forecast
                 if (!window.dynamicWorldTimeseriesData || window.dynamicWorldTimeseriesData.length < 2) {
                     alert('Need Dynamic World time series data to create a forecast. Please run the time series analysis with Dynamic World first.');
+                    hideLoading(); // Add this to hide loading when no data is available
                     return;
                 }
                 
@@ -4456,7 +5669,8 @@ function getDynamicWorld(coordinates) {
             // Add IGBP layer to map controls
             if (!document.getElementById('igbp-toggle')) {
                 // Add a control for the IGBP layer in the map controls panel
-                const ndviControlSection = document.querySelector('.control-section:has(#ndvi-toggle)');
+                const controlsContainer = document.querySelector('.map-controls');
+                const ndviControlSection = document.querySelector('.control-section');
                 const igbpControlSection = document.createElement('div');
                 igbpControlSection.className = 'control-section';
                 igbpControlSection.innerHTML = `
@@ -4469,7 +5683,11 @@ function getDynamicWorld(coordinates) {
                     <div class="opacity-value" id="igbp-opacity-value">80%</div>
                 `;
                 
-                ndviControlSection.parentNode.insertBefore(igbpControlSection, ndviControlSection.nextSibling);
+                if (ndviControlSection && ndviControlSection.parentNode) {
+                    ndviControlSection.parentNode.insertBefore(igbpControlSection, ndviControlSection.nextSibling);
+                } else if (controlsContainer) {
+                    controlsContainer.appendChild(igbpControlSection);
+                }
                 
                 // Add event listener for the IGBP toggle
                 document.getElementById('igbp-toggle').addEventListener('change', function() {
@@ -4672,7 +5890,8 @@ function displayESAWorldCoverResults(worldcoverData) {
     // Add ESA WorldCover layer to map controls
     if (!document.getElementById('worldcover-toggle')) {
         // Add a control for the ESA WorldCover layer in the map controls panel
-        const ndviControlSection = document.querySelector('.control-section:has(#ndvi-toggle)');
+        const controlsContainer = document.querySelector('.map-controls');
+        const ndviControlSection = document.querySelector('.control-section');
         const worldcoverControlSection = document.createElement('div');
         worldcoverControlSection.className = 'control-section';
         worldcoverControlSection.innerHTML = `
@@ -4685,7 +5904,11 @@ function displayESAWorldCoverResults(worldcoverData) {
             <div class="opacity-value" id="worldcover-opacity-value">80%</div>
         `;
         
-        ndviControlSection.parentNode.insertBefore(worldcoverControlSection, ndviControlSection.nextSibling);
+        if (ndviControlSection && ndviControlSection.parentNode) {
+            ndviControlSection.parentNode.insertBefore(worldcoverControlSection, ndviControlSection.nextSibling);
+        } else if (controlsContainer) {
+            controlsContainer.appendChild(worldcoverControlSection);
+        }
         
         // Add event listener for the ESA WorldCover toggle
         document.getElementById('worldcover-toggle').addEventListener('change', function() {
@@ -4988,7 +6211,8 @@ function displayESAWorldCoverResults(worldcoverData) {
             // Add Dynamic World layer to map controls
             if (!document.getElementById('dynamicworld-toggle')) {
                 // Add a control for the Dynamic World layer in the map controls panel
-                const ndviControlSection = document.querySelector('.control-section:has(#ndvi-toggle)');
+                const controlsContainer = document.querySelector('.map-controls');
+                const ndviControlSection = document.querySelector('.control-section');
                 const dynamicWorldControlSection = document.createElement('div');
                 dynamicWorldControlSection.className = 'control-section';
                 dynamicWorldControlSection.innerHTML = `
@@ -5001,7 +6225,11 @@ function displayESAWorldCoverResults(worldcoverData) {
                     <div class="opacity-value" id="dynamicworld-opacity-value">80%</div>
                 `;
                 
-                ndviControlSection.parentNode.insertBefore(dynamicWorldControlSection, ndviControlSection.nextSibling);
+                if (ndviControlSection && ndviControlSection.parentNode) {
+                    ndviControlSection.parentNode.insertBefore(dynamicWorldControlSection, ndviControlSection.nextSibling);
+                } else if (controlsContainer) {
+                    controlsContainer.appendChild(dynamicWorldControlSection);
+                }
                 
                 // Add event listener for the Dynamic World toggle
                 document.getElementById('dynamicworld-toggle').addEventListener('change', function() {
@@ -5340,20 +6568,21 @@ function displayESAWorldCoverResults(worldcoverData) {
                 
                 // Create a summary of significant changes
                 displayDynamicWorldForecastSummary(years, forecastYears, landCoverClasses, forecasts, classColors);
-                
-                // Hide loading screen after successfully generating forecast
-                hideLoading();
+        
+        // Hide loading screen after successfully generating forecast
+        hideLoading();
             } catch (error) {
                 console.error('Error generating Dynamic World forecast:', error);
                 resultsDiv.innerHTML = `<p class="error">Error generating forecast: ${error.message}</p>`;
-                
-                // Make sure to hide loading screen on error
-                hideLoading();
+        
+        // Make sure to hide loading screen on error
+        hideLoading();
             }
         }
         
         // Function to create Dynamic World forecast charts
         function createDynamicWorldForecastCharts(historicalYears, forecastYears, landCoverClasses, classColors, forecasts) {
+    try {
             // Show the time series container
             const timeSeriesContainer = document.getElementById('time-series-results');
             timeSeriesContainer.style.display = 'block';
@@ -5513,10 +6742,17 @@ function displayESAWorldCoverResults(worldcoverData) {
                     }
                 }
             });
+    } catch (error) {
+        console.error('Error creating Dynamic World forecast charts:', error);
+        document.getElementById('results').innerHTML = `<p class="error">Error creating forecast charts: ${error.message}</p>`;
+        // Add this to ensure loading screen is hidden if chart creation fails
+        hideLoading();
+    }
         }
         
         // Function to display Dynamic World forecast summary
         function displayDynamicWorldForecastSummary(historicalYears, forecastYears, landCoverClasses, forecasts, classColors) {
+    try {
             const resultsDiv = document.getElementById('results');
             
             // Create a forecast summary (replace any existing content)
@@ -5592,6 +6828,12 @@ function displayESAWorldCoverResults(worldcoverData) {
             
             // Create pie charts comparing current vs. forecasted distribution
             createComparisonPieCharts(historicalYears, forecastYears, landCoverClasses, forecasts, classColors, forecastContainer);
+    } catch (error) {
+        console.error('Error displaying Dynamic World forecast summary:', error);
+        document.getElementById('results').innerHTML = `<p class="error">Error displaying forecast summary: ${error.message}</p>`;
+        // Add this to ensure loading screen is hidden if summary creation fails
+        hideLoading();
+    }
         }
         
         // Function to create comparison pie charts
@@ -5879,7 +7121,42 @@ function resetChartCanvases() {
 
         // Add event listener for model type change
         document.querySelector('input[name="model-type"]').addEventListener('change', function() {
-            // Update the model-specific UI elements
+            // Get the current model type
+            const modelType = document.querySelector('input[name="model-type"]:checked').value;
+            console.log(`Model changed to: ${modelType}`);
+            
+            // Clear existing map layers for fresh analysis
+            clearAllMapLayers();
+            
+            // Reset animation controls
+            const controls = document.getElementById('animation-controls');
+            controls.classList.remove('visible');
+            
+            // Reset animation state to prevent issues when switching back
+            animationState = {
+                mapTiles: [],
+                currentIndex: 0,
+                isPlaying: false,
+                animationSpeed: 1000,
+                animationInterval: null,
+                currentLayer: null
+            };
+            
+            // Reset any running animations
+            stopAnimation();
+            
+            // Reset the play/pause button appearance
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            if (playPauseBtn) {
+                playPauseBtn.textContent = 'Play';
+                playPauseBtn.style.backgroundColor = '#4CAF50';
+                playPauseBtn.classList.remove('playing');
+            }
+            
+            // Update the UI based on model selection
+            updateLegendVisibility(modelType);
+            
+            console.log('Animation state reset after model change');
         });
 
         // Update the NDVI layer when the year is changed in Land Cover Classification
