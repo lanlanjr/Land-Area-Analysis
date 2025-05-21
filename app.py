@@ -58,15 +58,9 @@ except Exception as e:
     print(f"Service account email: {os.getenv('GEE_CLIENT_EMAIL')}")
     print(f"Project ID: {os.getenv('GEE_PROJECT_ID')}")
     
-    # Don't raise the exception - use default interactive auth as fallback
-    try:
-        print("Attempting fallback to default authentication...")
-        ee.Authenticate(auth_mode='notebook')
-        ee.Initialize(project=os.getenv('GEE_PROJECT_ID'))
-        print("Fallback authentication successful")
-    except Exception as fallback_error:
-        print("Fallback authentication also failed:", str(fallback_error))
-        raise
+    # Do not use interactive auth for web server deployment
+    # Instead, raise a clear error
+    raise RuntimeError("Earth Engine authentication failed. Service account authentication is required for web deployment.")
 
 # Default coordinates (can be overridden by user selection)
 DEFAULT_COORDS = [
