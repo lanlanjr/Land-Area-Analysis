@@ -9,54 +9,28 @@ from shapely.geometry import shape, mapping
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Earth Engine using environment variables
+# Initialize Earth Engine using service-account.json
 try:
-    from dotenv import load_dotenv
+    # Read the service account email from the JSON file
+    with open('service-account.json', 'r') as f:
+        service_account_info = json.load(f)
     
-    # Load environment variables from .env file
-    load_dotenv()
+    service_account = service_account_info["client_email"]
     
-    # Load service account credentials from environment variables
-    service_account = os.getenv("GEE_CLIENT_EMAIL")
-    
-    # Option 1: Try using the service-account.json file if available
-    if os.path.exists('service-account.json'):
-        print("Using service-account.json file for authentication")
-        credentials = ee.ServiceAccountCredentials(service_account, 'service-account.json')
-        ee.Initialize(credentials)
-    else:
-        # Option 2: Use environment variables to create credential dictionary
-        print("Using environment variables for authentication")
-        credentials = {
-            "type": os.getenv("GEE_TYPE"),
-            "project_id": os.getenv("GEE_PROJECT_ID"),
-            "private_key_id": os.getenv("GEE_PRIVATE_KEY_ID"),
-            "private_key": os.getenv("GEE_PRIVATE_KEY", "").replace("\\n", "\n"),
-            "client_email": service_account,
-            "client_id": os.getenv("GEE_CLIENT_ID"),
-            "auth_uri": os.getenv("GEE_AUTH_URI"),
-            "token_uri": os.getenv("GEE_TOKEN_URI"),
-            "auth_provider_x509_cert_url": os.getenv("GEE_AUTH_PROVIDER_X509_CERT_URL"),
-            "client_x509_cert_url": os.getenv("GEE_CLIENT_X509_CERT_URL"),
-            "universe_domain": os.getenv("GEE_UNIVERSE_DOMAIN")
-        }
-        
-        # Use key_data parameter for direct authentication
-        credentials_object = ee.ServiceAccountCredentials(service_account, key_data=json.dumps(credentials))
-        ee.Initialize(credentials_object)
+    print("Using service-account.json file for authentication")
+    credentials = ee.ServiceAccountCredentials(service_account, 'service-account.json')
+    ee.Initialize(credentials)
     
     print(f"Earth Engine initialized with service account: {service_account}")
     
 except Exception as e:
     print("Error initializing Earth Engine:", str(e))
-    print("Please make sure your .env file is properly configured")
+    print("Please make sure your service-account.json file is properly configured")
     
     # For debugging - print detailed error information but not credentials
     import traceback
     print("Detailed error:")
     traceback.print_exc()
-    print(f"Service account email: {os.getenv('GEE_CLIENT_EMAIL')}")
-    print(f"Project ID: {os.getenv('GEE_PROJECT_ID')}")
     
     # Do not use interactive auth for web server deployment
     # Instead, raise a clear error

@@ -54,24 +54,33 @@ pip install -r requirements.txt
 ```
 
 4. Configure Earth Engine authentication:
-   - Create a `.env` file with your Google Earth Engine service account credentials
-   - Alternatively, use interactive authentication with `earthengine authenticate`
+   - Place your Google Earth Engine service account credentials in a file named `service-account.json` in the project root
+   - You can create a service account in the Google Cloud Console and generate a JSON key
 
-## Environment Variables
+## Google Earth Engine Authentication
 
-Create a `.env` file with the following variables:
-```
-GEE_TYPE=service_account
-GEE_PROJECT_ID=your-project-id
-GEE_PRIVATE_KEY_ID=your-private-key-id
-GEE_PRIVATE_KEY=your-private-key
-GEE_CLIENT_EMAIL=your-service-account-email
-GEE_CLIENT_ID=your-client-id
-GEE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
-GEE_TOKEN_URI=https://oauth2.googleapis.com/token
-GEE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
-GEE_CLIENT_X509_CERT_URL=your-cert-url
-GEE_UNIVERSE_DOMAIN=googleapis.com
+The application uses a service account for authentication with Google Earth Engine. You need to:
+
+1. Create a service account in the Google Cloud Console
+2. Enable the Earth Engine API for your project
+3. Generate a JSON key for the service account
+4. Save this JSON key as `service-account.json` in the project root directory
+
+The JSON file should have the following structure:
+```json
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "your-private-key-id",
+  "private_key": "your-private-key",
+  "client_email": "your-service-account-email",
+  "client_id": "your-client-id",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "your-cert-url",
+  "universe_domain": "googleapis.com"
+}
 ```
 
 ## Usage

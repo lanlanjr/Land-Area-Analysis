@@ -3,7 +3,6 @@ earthengine-api==0.1.295
 geemap==0.28.2
 numpy==1.24.3
 pandas==2.0.3
-python-dotenv==1.0.0
 folium==0.12.1
 geopandas==0.10.2
 shapely==1.8.0 
