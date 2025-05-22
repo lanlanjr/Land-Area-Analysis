@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>GIS Land Area Analysis</title>
     <!-- Leaflet CSS -->
@@ -257,15 +259,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             background-color: #3498db;
             color: white;
-            font-style: normal;
-            font-weight: bold;
             margin-right: 10px;
-            font-size: 12px;
+            font-size: 14px;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+        .info-icon:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
         }
         .info-message p {
             margin: 0;
@@ -959,12 +965,12 @@
             vertical-align: middle;
         }
         
-        .leaflet-control-maptype {
+        /* .leaflet-control-maptype {
             background: white;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4);
             border-radius: 4px;
             z-index: 1000;
-        }
+        } */
         
         .map-type-icon-container {
             display: flex;
@@ -1121,21 +1127,28 @@
             margin-right: -5px;
             transition: opacity 0.2s ease;
             scrollbar-width: thin;
-            scrollbar-color: rgba(76, 175, 80, 0.5) transparent;
+            scrollbar-color: rgba(76, 175, 80, 0.6) rgba(0, 0, 0, 0.05);
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
         
         /* Style the scrollbar for webkit browsers */
         .map-controls-panel .scrollable-content::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
         
         .map-controls-panel .scrollable-content::-webkit-scrollbar-track {
-            background: transparent;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
         }
         
         .map-controls-panel .scrollable-content::-webkit-scrollbar-thumb {
-            background-color: rgba(76, 175, 80, 0.5);
+            background-color: rgba(76, 175, 80, 0.6);
             border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .map-controls-panel .scrollable-content::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(76, 175, 80, 0.8);
         }
         
         /* Desktop styling for map controls */
@@ -1146,24 +1159,42 @@
                 max-height: 80vh; /* 80% of viewport height to ensure it fits on screen */
                 width: 300px;
             }
+            
+            .map-controls-panel .scrollable-content {
+                max-height: calc(80vh - 45px); /* Account for header height */
+                overflow-y: auto; /* Always show scrollbar if content overflows */
+                scrollbar-width: thin;
+                padding-right: 10px;
+            }
         }
         
         /* Mobile styling for map controls */
         @media (max-width: 768px) {
             .map-controls-panel {
-                bottom: 20px;
+                bottom: auto; /* Reset bottom positioning */
+                top: 10px; /* Position at top of screen */
                 right: 10px;
                 max-height: 60vh; /* 60% of viewport height for mobile */
-                width: calc(100% - 20px); /* Full width minus margins */
+                width: calc(100% - 200px); /* Full width minus margins */
                 max-width: 300px;
+                overflow: visible; /* Ensure overflow doesn't affect scrolling */
+            }
+            
+            /* Ensure collapsed panel also stays at top right */
+            .map-controls-panel.collapsed {
+                bottom: auto !important;
+                top: 10px !important;
             }
             
             .map-controls-panel .scrollable-content {
                 /* Improve touch scrolling on mobile */
                 -webkit-overflow-scrolling: touch;
-                overflow-y: auto;
-                max-height: calc(60vh - 45px); /* Account for header height and padding */
-                padding-bottom: 20px; /* Extra padding at bottom for better mobile scrolling */
+                overflow-y: scroll !important; /* Force scrollbar to always be available */
+                max-height: 30vh; /* Account for header height and padding */
+                padding-top: 5px; /* Add padding at top */
+                overscroll-behavior: contain; /* Prevent scroll chaining */
+                height: auto !important; /* Allow content to define height */
+                min-height: 200px; /* Ensure minimum height for scrolling */
             }
             
             /* Ensure controls are big enough for touch interaction */
@@ -1308,27 +1339,7 @@
             transition: transform 0.1s;
         }
         
-        /* Active features indicator */
-        .map-controls-panel.collapsed .active-features-indicator {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 12px;
-            height: 12px;
-            background-color: #ff9800;
-            border-radius: 50%;
-            border: 2px solid white;
-            opacity: 0;
-            transform: scale(0);
-            transition: all 0.3s ease;
-            z-index: 20;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        .map-controls-panel.collapsed.has-active-features .active-features-indicator {
-            opacity: 1;
-            transform: scale(1);
-        }
+
 
         
         /* Mini preview when collapsed */
@@ -1406,7 +1417,8 @@
         .map-controls-content {
             opacity: 1;
             transition: opacity 0.3s ease;
-            padding-bottom: 10px; /* Add padding at the bottom for better spacing */
+            padding-bottom: 20px; /* More padding at the bottom for better spacing */
+            padding-right: 5px; /* Add padding to avoid content touching the scrollbar */
             position: relative; /* For positioning the back-to-top button */
         }
         
@@ -1590,6 +1602,96 @@
             fill-opacity: 0.5;
         }
         
+        /* Tour Styles */
+        .introjs-tooltip {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .introjs-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            text-shadow: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .introjs-button:hover {
+            background-color: #388E3C;
+            color: white;
+        }
+
+        .introjs-skipbutton {
+            color: #666;
+            background: none;
+        }
+
+        .introjs-skipbutton:hover {
+            color: #333;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .introjs-helperLayer {
+            background-color: rgba(76, 175, 80, 0.1);
+            border: 2px solid #4CAF50;
+        }
+
+        .introjs-arrow {
+            border-color: #ffffff;
+        }
+
+        /* Custom tooltip without element highlight */
+        .no-element-tooltip {
+            max-width: 400px;
+            text-align: center;
+        }
+        
+
+        
+        .no-element-tooltip .introjs-tooltip-title {
+            text-align: center;
+        }
+
+        .no-element-tooltip .introjs-helperLayer,
+        .no-element-tooltip .introjs-tooltipReferenceLayer {
+            display: none;
+        }
+
+        /* Start Tour Button */
+        .tour-button {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .tour-button:hover {
+            background-color: #388E3C;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tour-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
         /* Tooltip and Model Details Styles */
         .tooltip-icon {
             display: inline-flex;
@@ -1684,8 +1786,8 @@
         
         /* Map Type Control collapsible styles */
         .leaflet-control-maptype {
-            background: white;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            background: rgb(155, 242, 147);
+            /* box-shadow: 0 1px 5px rgba(0,0,0,0.4); */
             border-radius: 4px;
             z-index: 1000;
             position: relative;
@@ -1694,11 +1796,10 @@
         }
         
         .leaflet-control-maptype.collapsed {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
-            background: white;
-            overflow: hidden;
+            width: 33px;
+            height: 33px;
+            /* border-radius: 4px; */
+            /* overflow: hidden; */
         }
         
         .maptype-toggle-btn {
@@ -1793,9 +1894,9 @@
         /* Ensure proper touch handling on mobile */
         @media (max-width: 991px) {
             .leaflet-touch .leaflet-draw-toolbar a {
-                height: 34px;
-                width: 34px;
-                line-height: 34px;
+                height: 30px;
+                width: 30px;
+                line-height: 30px;
             }
             
             /* Increase touch targets for mobile drawing */
@@ -1821,9 +1922,17 @@
     
     
     <div class="container">
+        <!-- Tour Button -->
+        <button class="tour-button" id="startTour">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            Take a Tour
+        </button>
+        
         <div class="sidebar">
             <button class="sidebar-toggle">≡</button>
-            <h2 style="margin-bottom: 25px; color: #2c3e50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Land Area Analysis</h2>
+            <h2 style="margin-bottom: 25px; color: #2c3e50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;"><a href="/" style="text-decoration: none; color: inherit;">Land Area Analysis</a></h2>
             
             <div class="sidebar-section">
                 <h3 class="section-title">Model Selection</h3>
@@ -1892,7 +2001,7 @@
                     </div>
                 </div>
                 <div class="info-message" style="margin-top: 10px;">
-                    <i class="info-icon">i</i>
+                    <i class="info-icon fas fa-info"></i>
                     <p>The selected model will be used for time series analysis, forecasting, and land cover classification.</p>
                 </div>
             </div>
@@ -1945,7 +2054,7 @@
             
             <div class="results sidebar-section" id="results">
                 <div class="info-message">
-                    <i class="info-icon">i</i>
+                    <i class="info-icon fas fa-info"></i>
                     <p>Draw a polygon on the map to select an area for analysis.</p>
                 </div>
             </div>
@@ -2022,7 +2131,6 @@
             <!-- Map type control will be added by JavaScript -->
             
             <div class="map-controls-panel collapsed" id="mapControlsPanel">
-                <div class="active-features-indicator" title="Active map features"></div>
                 <div class="map-controls-header">
                     <span class="map-controls-header-text">Map Features</span>
                     <div class="map-controls-toggle" id="mapControlsToggle" title="Expand Map Features">
@@ -2032,12 +2140,7 @@
                         </svg>
                 </div>
                 </div>
-                <!-- Back to top button for mobile scrolling -->
-                <div class="back-to-top" id="backToTop" title="Back to top">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"/>
-                    </svg>
-                </div>
+
                 <div class="scrollable-content">
                 <div class="map-controls-content">
                     <div class="control-section">
@@ -2067,7 +2170,7 @@
                     <div class="control-section">
                         <div class="control-section-title">Water Features</div>
                         <div class="control-item">
-                            <input type="checkbox" id="waterways-toggle">
+                            <input type="checkbox" id="waterways-toggle" checked>
                             <label for="waterways-toggle">Waterways <span class="color-indicator" style="background-color: darkblue;"></span></label>
                         </div>
                         <div class="control-item">
@@ -2123,7 +2226,131 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Intro.js -->
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <script>
+        // Tour configuration
+        const tourSteps = [
+            {
+                element: '#startTour',
+                intro: 'Welcome to the Land Area Analysis Tool! Click this button anytime to restart the tour.',
+                position: 'left'
+            },
+            {
+                element: '.sidebar',
+                intro: 'This is your control panel where you can configure all analysis settings.',
+                position: 'right'
+            },
+            {
+                intro: 'To pan around the map, click and drag anywhere on the map. You can also use arrow keys for precise movements.',
+                position: 'bottom-middle-aligned',
+                tooltipClass: 'no-element-tooltip'
+            },
+            {
+                element: '.leaflet-control-zoom',
+                intro: 'Use these controls to zoom in and out of the map. You can also use your mouse wheel or touchpad gestures.',
+                position: 'right'
+            },
+            {
+                element: '.map-controls-toggle',
+                intro: 'Click this button to show or hide the map controls panel.',
+                position: 'right'
+            },
+            {
+                element: '.maptype-toggle-btn',
+                intro: 'Click here to toggle between different map types (Satellite and Street View) to better visualize the area.',
+                position: 'right'
+            },
+            {
+                element: '.leaflet-draw-toolbar',
+                intro: 'This is your drawing toolbar. It contains various tools for selecting areas on the map.',
+                position: 'left'
+            },
+            {
+                element: '.leaflet-draw-draw-polygon',
+                intro: 'Click this to draw a polygon. Click points on the map to create your area, and double-click to finish.',
+                position: 'right'
+            },
+            {
+                element: '.leaflet-draw-draw-rectangle',
+                intro: 'Use this to draw a rectangle. Click and drag to define your area.',
+                position: 'right'
+            },
+            {
+                element: '.leaflet-draw-edit-edit',
+                intro: 'After drawing, use this tool to modify your shapes by dragging the white squares.',
+                position: 'right'
+            },
+            {
+                element: '.leaflet-draw-edit-remove',
+                intro: 'Use this to delete your drawn shapes and start over.',
+                position: 'right'
+            },
+            {
+                element: '.model-details-container',
+                intro: 'Choose between two powerful analysis models: NDVI for vegetation analysis or Dynamic World for comprehensive land cover classification.',
+                position: 'right'
+            },
+            {
+                element: '.expand-button',
+                intro: 'Click "Show more details" to learn more about each analysis model\'s features and capabilities.',
+                position: 'right'
+            },
+            {
+                element: '.year-selector',
+                intro: 'Select a time range to analyze changes in land cover over time.',
+                position: 'right'
+            },
+            {
+                element: '#enable-forecast',
+                intro: 'Enable forecasting to predict future land cover changes based on historical data.',
+                position: 'right'
+            },
+            {
+                element: '#enable-land-cover',
+                intro: 'Enable land cover analysis to get detailed classification of different land types in your selected area.',
+                position: 'right'
+            },
+            {
+                element: '.legend',
+                intro: 'Reference this legend to understand the visualization of your analysis results.',
+                position: 'right'
+            }
+        ];
+
+        // Initialize the tour
+        const tour = introJs();
+        tour.setOptions({
+            steps: tourSteps,
+            showProgress: true,
+            showBullets: false,
+            showStepNumbers: true,
+            exitOnOverlayClick: false,
+            exitOnEsc: true,
+            nextLabel: 'Next →',
+            prevLabel: '← Back',
+            doneLabel: 'Finish',
+            overlayOpacity: 0.5,
+            scrollToElement: true,
+            disableInteraction: false
+        });
+
+        // Check if this is the first visit
+        const isFirstVisit = !localStorage.getItem('hasVisitedBefore');
+        if (isFirstVisit) {
+            // Start the tour automatically on first visit
+            setTimeout(() => {
+                tour.start();
+                localStorage.setItem('hasVisitedBefore', 'true');
+            }, 1000);
+        }
+
+        // Add event listener for the tour button
+        document.getElementById('startTour').addEventListener('click', () => {
+            tour.start();
+        });
+
         // Calculate and set proper viewport height to handle mobile browser chrome
         function setMobileViewportHeight() {
             let vh = window.innerHeight * 0.01;
@@ -2381,10 +2608,10 @@
         }
         
         // Initialize map
-        const map = L.map('map').setView([13.4500, 123.4500], 11); // Wider view of Bicol region
+        const map = L.map('map').setView([13.3288, 123.3432], 11); // User-specified coordinates
         
         // Define Bicol region bounds and view
-        const BICOL_CENTER = [13.4500, 123.4500];
+        const BICOL_CENTER = [13.32231, 123.35415];
         const BICOL_ZOOM = 11;
         
         // Function to reset map view to Bicol region
@@ -2575,58 +2802,32 @@
                     <path fill-rule="evenodd" d="M7.646 8.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8 9.707l-1.646 1.647a.5.5 0 0 1-.708-.708l2-2z"/>
                 </svg>`;
                 this.title = "Expand Map Features";
-                
-                // Add tooltip with active features
-                updateActiveFeaturesBadge();
             } else {
                 this.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
                 </svg>`;
                 this.title = "Collapse Map Features";
                 
-                // Scroll to top when opening on mobile for better user experience
+                // On desktop only, scroll to top when opening
                 const scrollableContent = panel.querySelector('.scrollable-content');
-                if (scrollableContent) {
+                if (scrollableContent && window.innerWidth > 768) {
                     scrollableContent.scrollTop = 0;
                 }
                 
-                // On mobile, make sure the panel is fully visible within the viewport
+                // On mobile, don't reset scroll position - allow user to maintain their place
                 if (window.innerWidth <= 768) {
                     // Give a small delay to allow CSS transitions to complete
                     setTimeout(() => {
-                        // Ensure the panel is visible in the viewport
-                        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        // Just make sure the panel itself is visible, without changing scroll position
+                        if (!panel.getBoundingClientRect().top >= 0) {
+                            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
                     }, 100);
                 }
             }
         });
         
-        // Function to update the active features badge
-        function updateActiveFeaturesBadge() {
-            const panel = document.getElementById('mapControlsPanel');
-            let activeFeatures = [];
-            
-            // Check which features are active
-            if (document.getElementById('controls-camsur-toggle').checked) activeFeatures.push('Camarines Sur');
-            if (document.getElementById('controls-albay-toggle').checked) activeFeatures.push('Albay');
-            if (document.getElementById('waterways-toggle').checked) activeFeatures.push('Waterways');
-            if (document.getElementById('area-toggle').checked) activeFeatures.push('Selected Area');
-            if (document.getElementById('layer-toggle').checked) activeFeatures.push('NDVI Layer');
-            
-            // Update badge visibility
-            if (activeFeatures.length > 0) {
-                panel.classList.add('has-active-features');
-                const indicator = panel.querySelector('.active-features-indicator');
-                indicator.title = 'Active features: ' + activeFeatures.join(', ');
-            } else {
-                panel.classList.remove('has-active-features');
-            }
-        }
-        
-        // Listen for changes on all feature toggles
-        document.querySelectorAll('#mapControlsPanel input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateActiveFeaturesBadge);
-        });
+
         
         // Also allow clicking the header to toggle
         document.querySelector('.map-controls-header').addEventListener('click', function(e) {
@@ -2636,35 +2837,9 @@
             }
         });
         
-        // Handle back to top button for mobile scrolling
-        document.addEventListener('DOMContentLoaded', function() {
-            const backToTopBtn = document.getElementById('backToTop');
-            const scrollableContent = document.querySelector('.map-controls-panel .scrollable-content');
-            
-            if (backToTopBtn && scrollableContent) {
-                // Show/hide button based on scroll position
-                scrollableContent.addEventListener('scroll', function() {
-                    if (scrollableContent.scrollTop > 200 && window.innerWidth <= 768) {
-                        backToTopBtn.classList.add('visible');
-                    } else {
-                        backToTopBtn.classList.remove('visible');
-                    }
-                });
-                
-                // Scroll to top when clicking the button
-                backToTopBtn.addEventListener('click', function() {
-                    scrollableContent.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-                });
-            }
-        });
+
         
-        // Initialize active features badge
-        window.addEventListener('load', function() {
-            updateActiveFeaturesBadge();
-        });
+
         
         // Base map opacity control
         document.getElementById('base-map-opacity').addEventListener('input', function() {
@@ -2735,55 +2910,131 @@
         
         // Function to load waterways
         function loadWaterways() {
-            fetch('waterways.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    // Get current waterways opacity
-                    const opacity = parseFloat(document.getElementById('waterways-opacity').value) / 100;
-                    
-                    waterwaysLayer.features = L.geoJSON(data, {
-                        style: {
-                            color: waterwaysLayer.color,
-                            weight: 2,
-                            opacity: opacity,
-                            fillColor: waterwaysLayer.color,
-                            fillOpacity: opacity * 0.5
+            console.log('Loading waterways...');
+            
+            // Create a simple waterway feature for testing if the fetch fails
+            const createFallbackWaterways = () => {
+                console.log('Using fallback waterways data');
+                // Create a simple line representing a waterway
+                const fallbackData = {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {"name": "Sample Waterway"},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [
+                                    [123.7, 13.4],
+                                    [123.75, 13.45],
+                                    [123.8, 13.5]
+                                ]
+                            }
                         }
-                    });
-                    
-                    // Initialize clipped features as null
-                    waterwaysLayer.clippedFeatures = null;
-                    
-                    // If waterways should be visible, add to map
-                    updateWaterwaysDisplay();
+                    ]
+                };
+                
+                return fallbackData;
+            };
+            
+            fetch('waterways.geojson')
+                .then(response => {
+                    console.log('Waterways response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load waterways: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Waterways data loaded successfully');
+                    initializeWaterwaysLayer(data);
                 })
                 .catch(error => {
                     console.error('Error loading waterways GeoJSON:', error);
+                    // Try with smaller fallback data
+                    console.log('Attempting to use fallback waterways data...');
+                    const fallbackData = createFallbackWaterways();
+                    initializeWaterwaysLayer(fallbackData);
                 });
+        }
+        
+        // Function to initialize waterways layer with data
+        function initializeWaterwaysLayer(data) {
+            // Get current waterways opacity
+            const opacity = parseFloat(document.getElementById('waterways-opacity').value) / 100;
+            
+            try {
+                waterwaysLayer.features = L.geoJSON(data, {
+                    style: {
+                        color: waterwaysLayer.color,
+                        weight: 2,
+                        opacity: opacity,
+                        fillColor: waterwaysLayer.color,
+                        fillOpacity: opacity * 0.5
+                    }
+                });
+                
+                // Initialize clipped features as null
+                waterwaysLayer.clippedFeatures = null;
+                
+                // Check if waterways toggle is checked
+                const waterwaysToggle = document.getElementById('waterways-toggle');
+                if (waterwaysToggle && waterwaysToggle.checked) {
+                    console.log('Waterways toggle is checked, setting visible to true');
+                    waterwaysLayer.visible = true;
+                }
+                
+                // If waterways should be visible, add to map
+                updateWaterwaysDisplay();
+                console.log('Waterways visibility state after update:', waterwaysLayer.visible);
+            } catch (error) {
+                console.error('Error initializing waterways layer:', error);
+            }
         }
         
         // Function to update waterways display based on visibility and clipping
         function updateWaterwaysDisplay() {
-            // First, clear the layer
-            waterwaysLayer.layer.clearLayers();
+            console.log('Updating waterways display, visible:', waterwaysLayer.visible);
             
-            // Only proceed if waterways are visible
-            if (!waterwaysLayer.visible) {
-                return;
-            }
-            
-            // If clipping is enabled and we have both clipped features and area
-            if (waterwaysLayer.clipped && waterwaysLayer.clippedFeatures && currentCoordinates) {
-                waterwaysLayer.layer.addLayer(waterwaysLayer.clippedFeatures);
-            } 
-            // Otherwise, show all waterways
-            else if (waterwaysLayer.features) {
-                waterwaysLayer.layer.addLayer(waterwaysLayer.features);
-            }
-            
-            // Make sure layer is on map if visible
-            if (waterwaysLayer.visible && !map.hasLayer(waterwaysLayer.layer)) {
-                map.addLayer(waterwaysLayer.layer);
+            try {
+                // First, clear the layer
+                waterwaysLayer.layer.clearLayers();
+                
+                // Only proceed if waterways are visible
+                if (!waterwaysLayer.visible) {
+                    console.log('Waterways not visible, returning');
+                    return;
+                }
+                
+                let featuresAdded = false;
+                
+                // If clipping is enabled and we have both clipped features and area
+                if (waterwaysLayer.clipped && waterwaysLayer.clippedFeatures && currentCoordinates) {
+                    console.log('Adding clipped waterways to layer');
+                    waterwaysLayer.layer.addLayer(waterwaysLayer.clippedFeatures);
+                    featuresAdded = true;
+                } 
+                // Otherwise, show all waterways
+                else if (waterwaysLayer.features) {
+                    console.log('Adding all waterways to layer');
+                    waterwaysLayer.layer.addLayer(waterwaysLayer.features);
+                    featuresAdded = true;
+                } else {
+                    console.log('No waterways features available');
+                }
+                
+                // Make sure layer is on map if visible and we have features
+                if (waterwaysLayer.visible && featuresAdded) {
+                    console.log('Ensuring waterways layer is on map');
+                    if (!map.hasLayer(waterwaysLayer.layer)) {
+                        console.log('Adding waterways layer to map');
+                        map.addLayer(waterwaysLayer.layer);
+                    } else {
+                        console.log('Waterways layer already on map');
+                    }
+                }
+            } catch (err) {
+                console.error('Error updating waterways display:', err);
             }
         }
         
@@ -2843,12 +3094,22 @@
         
         // Waterways toggle event handler
         document.getElementById('waterways-toggle').addEventListener('change', function() {
+            console.log('Waterways toggle changed to:', this.checked);
             waterwaysLayer.visible = this.checked;
             
             updateWaterwaysDisplay();
             
             if (!this.checked && map.hasLayer(waterwaysLayer.layer)) {
                 map.removeLayer(waterwaysLayer.layer);
+            }
+        });
+        
+        // Ensure waterways are shown after map is fully loaded
+        map.whenReady(function() {
+            console.log('Map is ready, rechecking waterways visibility');
+            if (document.getElementById('waterways-toggle').checked) {
+                waterwaysLayer.visible = true;
+                updateWaterwaysDisplay();
             }
         });
         
@@ -3348,6 +3609,10 @@
                     return;
                 }
                 
+                // Get current model type
+                const modelType = document.querySelector('input[name="model-type"]:checked')?.value || 'ndvi';
+                console.log(`Updating ${modelType} map for year: ${tileData.year} (index: ${index})`);
+                
                 // Create and add the new layer
                 animationState.currentLayer = L.tileLayer(tileData.tile_url);
                 animationState.currentLayer.addTo(map);
@@ -3361,8 +3626,22 @@
                     displayStatistics(tileData.statistics);
                 }
                 
+                // Store the current year and index globally to help with synchronization
+                window.currentAnimationYear = tileData.year;
+                window.currentAnimationIndex = index;
+                
                 // Highlight the current year in the charts
                 highlightCurrentYearInCharts(tileData.year);
+                
+                // Also update the year selector if it exists
+                const yearSelect = document.getElementById('land-cover-year');
+                if (yearSelect) {
+                    // Check if the option exists
+                    const option = yearSelect.querySelector(`option[value="${tileData.year}"]`);
+                    if (option) {
+                        yearSelect.value = tileData.year;
+                    }
+                }
             } catch (error) {
                 console.error('Error updating map layer:', error);
                 // Stop animation if there's an error to prevent continuous errors
@@ -3391,7 +3670,24 @@
             }
         }
         
-        function initializeAnimation(mapTiles) {
+        // Function to synchronize all chart highlighting with animation state
+function synchronizeChartHighlighting() {
+            // Check if we have active animation
+            if (!animationState.mapTiles || animationState.mapTiles.length === 0) {
+                return;
+            }
+            
+            // Get the current year from animation state
+            const currentIndex = animationState.currentIndex || 0;
+            const tileData = animationState.mapTiles[currentIndex];
+            
+            if (tileData && tileData.year) {
+                console.log(`Synchronizing chart highlighting for year: ${tileData.year}`);
+                highlightCurrentYearInCharts(tileData.year);
+            }
+        }
+
+function initializeAnimation(mapTiles) {
             if (!mapTiles || mapTiles.length === 0) {
                 console.error('No map tiles provided for animation initialization');
                 return;
@@ -4196,12 +4492,21 @@
                     };
                 });
                 
+                // Create a scrollable container for the table
+                const tableContainer = document.createElement('div');
+                tableContainer.style.overflowX = 'auto';
+                tableContainer.style.width = '100%';
+                tableContainer.style.marginTop = '10px';
+                tableContainer.style.position = 'relative';
+                
                 // Create a table for changes
                 const changesTable = document.createElement('table');
                 changesTable.style.width = '100%';
+                changesTable.style.minWidth = '600px'; // Ensure minimum width for content
                 changesTable.style.borderCollapse = 'collapse';
-                changesTable.style.marginTop = '10px';
-                changesDiv.appendChild(changesTable);
+                
+                tableContainer.appendChild(changesTable);
+                changesDiv.appendChild(tableContainer);
                 
                 // Table header
                 const thead = document.createElement('thead');
@@ -4601,82 +4906,139 @@
         }
         
         function highlightCurrentYearInCharts(year) {
-            if (!window.ndviChart || !window.vegetationChart) return;
+            if (!window.ndviChart || !window.vegetationChart) {
+                console.log(`Cannot highlight year ${year}: charts not initialized`);
+                return;
+            }
+            
+            // Get the model type to know which charts we're working with
+            const modelType = document.querySelector('input[name="model-type"]:checked')?.value || 'ndvi';
             
             // Find the index of the current year in the charts
             const yearIndex = window.ndviChart.data.labels.findIndex(y => y == year);
-            if (yearIndex === -1) return;
-            
-            // Reset all point styles for NDVI chart
-            window.ndviChart.data.datasets[0].pointBackgroundColor = window.ndviChart.data.labels.map(() => '#4CAF50');
-            window.ndviChart.data.datasets[0].pointRadius = window.ndviChart.data.labels.map(() => 3);
-            window.ndviChart.data.datasets[0].pointBorderWidth = window.ndviChart.data.labels.map(() => 1);
-            
-            // Highlight the current year's point
-            window.ndviChart.data.datasets[0].pointBackgroundColor[yearIndex] = '#FF5722';
-            window.ndviChart.data.datasets[0].pointRadius[yearIndex] = 8;
-            window.ndviChart.data.datasets[0].pointBorderWidth[yearIndex] = 2;
-            
-            // Update the NDVI chart
-            window.ndviChart.update();
-            
-            // Reset all bar styles for vegetation chart
-            window.vegetationChart.data.datasets.forEach(dataset => {
-                // Set default border width and color for all bars
-                if (!dataset._originalBackgroundColor) {
-                    dataset._originalBackgroundColor = dataset.backgroundColor;
-                }
-                
-                // Reset background colors and borders
-                dataset.backgroundColor = dataset._originalBackgroundColor;
-                dataset.borderColor = '#00000000'; // transparent
-                dataset.borderWidth = 0;
-            });
-            
-            // Highlight current year's bars in vegetation chart
-            window.vegetationChart.data.datasets.forEach(dataset => {
-                // Apply highlight styles only to the bars of the current year
-                if (Array.isArray(dataset.backgroundColor)) {
-                    // For array-style backgroundColor
-                    dataset.borderColor = dataset.borderColor || [];
-                    dataset.borderWidth = dataset.borderWidth || [];
-                    
-                    dataset.borderColor[yearIndex] = '#FF5722';
-                    dataset.borderWidth[yearIndex] = 2;
-                } else {
-                    // For non-array backgroundColor, create arrays
-                    const colors = [];
-                    const borders = [];
-                    const widths = [];
-                    
-                    for (let i = 0; i < window.vegetationChart.data.labels.length; i++) {
-                        colors.push(i === yearIndex ? dataset.backgroundColor : dataset.backgroundColor);
-                        borders.push(i === yearIndex ? '#FF5722' : '#00000000');
-                        widths.push(i === yearIndex ? 2 : 0);
-                    }
-                    
-                    dataset.backgroundColor = colors;
-                    dataset.borderColor = borders;
-                    dataset.borderWidth = widths;
-                }
-            });
-            
-            // Update the vegetation chart
-            window.vegetationChart.update();
-            
-            // Create a highlight plugin for the vegetation chart if it doesn't exist
-            if (!window.vegetationChart.options.plugins.highlight) {
-                window.vegetationChart.options.plugins.highlight = {
-                    highlightedIndex: -1
-                };
+            if (yearIndex === -1) {
+                console.log(`Year ${year} not found in chart labels`);
+                return;
             }
             
-            // Set the highlighted index
-            window.vegetationChart.options.plugins.highlight.highlightedIndex = yearIndex;
+            console.log(`Highlighting year ${year} (index: ${yearIndex}) in ${modelType} charts`);
             
-            // Update the vegetation chart again
-            window.vegetationChart.update();
+            // ----------- Handle Line Charts (NDVI Chart) -----------
+            try {
+                // Apply appropriate highlighting based on chart structure
+                // For NDVI model, we usually have one dataset
+                if (modelType === 'ndvi' && window.ndviChart.data.datasets.length === 1) {
+                    // Reset all point styles for NDVI chart
+                    window.ndviChart.data.datasets[0].pointBackgroundColor = window.ndviChart.data.labels.map(() => '#4CAF50');
+                    window.ndviChart.data.datasets[0].pointRadius = window.ndviChart.data.labels.map(() => 3);
+                    window.ndviChart.data.datasets[0].pointBorderWidth = window.ndviChart.data.labels.map(() => 1);
+                    
+                    // Highlight the current year's point
+                    window.ndviChart.data.datasets[0].pointBackgroundColor[yearIndex] = '#FF5722';
+                    window.ndviChart.data.datasets[0].pointRadius[yearIndex] = 8;
+                    window.ndviChart.data.datasets[0].pointBorderWidth[yearIndex] = 2;
+                } else {
+                    // For Dynamic World, we have multiple datasets
+                    window.ndviChart.data.datasets.forEach(dataset => {
+                        // Create point style arrays if they don't exist
+                        if (!dataset.pointBackgroundColor) {
+                            dataset.pointBackgroundColor = Array(window.ndviChart.data.labels.length).fill(dataset.borderColor);
+                        }
+                        if (!dataset.pointRadius) {
+                            dataset.pointRadius = Array(window.ndviChart.data.labels.length).fill(3);
+                        }
+                        if (!dataset.pointBorderWidth) {
+                            dataset.pointBorderWidth = Array(window.ndviChart.data.labels.length).fill(1);
+                        }
+                        
+                        // Reset points to default
+                        for (let i = 0; i < dataset.pointBackgroundColor.length; i++) {
+                            dataset.pointBackgroundColor[i] = dataset.borderColor;
+                            dataset.pointRadius[i] = 3;
+                            dataset.pointBorderWidth[i] = 1;
+                        }
+                        
+                        // Only highlight points with data (not null or undefined)
+                        if (dataset.data[yearIndex] !== null && dataset.data[yearIndex] !== undefined) {
+                            dataset.pointBackgroundColor[yearIndex] = '#FF5722';
+                            dataset.pointRadius[yearIndex] = 6;
+                            dataset.pointBorderWidth[yearIndex] = 2;
+                        }
+                    });
                 }
+                
+                // Update the NDVI/line chart
+                window.ndviChart.update();
+            } catch (error) {
+                console.error("Error highlighting line chart:", error);
+            }
+            
+            // ----------- Handle Bar Charts (Vegetation Chart) -----------
+            try {
+                // Reset all bar styles for vegetation chart
+                window.vegetationChart.data.datasets.forEach(dataset => {
+                    // Store original colors if not saved yet
+                    if (!dataset._originalBackgroundColor) {
+                        dataset._originalBackgroundColor = JSON.parse(JSON.stringify(dataset.backgroundColor));
+                    }
+                    
+                    // Reset background colors and borders
+                    if (Array.isArray(dataset._originalBackgroundColor)) {
+                        dataset.backgroundColor = JSON.parse(JSON.stringify(dataset._originalBackgroundColor));
+                    } else {
+                        dataset.backgroundColor = dataset._originalBackgroundColor;
+                    }
+                    dataset.borderColor = Array(window.vegetationChart.data.labels.length).fill('#00000000');
+                    dataset.borderWidth = Array(window.vegetationChart.data.labels.length).fill(0);
+                });
+                
+                // Highlight current year's bars in vegetation chart
+                window.vegetationChart.data.datasets.forEach(dataset => {
+                    // Only add border to the current year's bar
+                    if (Array.isArray(dataset.borderColor)) {
+                        dataset.borderColor[yearIndex] = '#FF5722';
+                        dataset.borderWidth[yearIndex] = 2;
+                    } else {
+                        // Create arrays for per-bar styling
+                        const borders = [];
+                        const widths = [];
+                        
+                        for (let i = 0; i < window.vegetationChart.data.labels.length; i++) {
+                            borders.push(i === yearIndex ? '#FF5722' : '#00000000');
+                            widths.push(i === yearIndex ? 2 : 0);
+                        }
+                        
+                        dataset.borderColor = borders;
+                        dataset.borderWidth = widths;
+                    }
+                });
+                
+                // Create a highlight plugin for the vegetation chart if it doesn't exist
+                if (!window.vegetationChart.options.plugins.highlight) {
+                    window.vegetationChart.options.plugins.highlight = {
+                        highlightedIndex: -1
+                    };
+                }
+                
+                // Set the highlighted index
+                window.vegetationChart.options.plugins.highlight.highlightedIndex = yearIndex;
+                
+                // Update the vegetation chart
+                window.vegetationChart.update();
+            } catch (error) {
+                console.error("Error highlighting bar chart:", error);
+            }
+            
+            // Sync with year selector if it exists
+            try {
+                const yearSelect = document.getElementById('land-cover-year');
+                if (yearSelect && yearSelect.querySelector(`option[value="${year}"]`)) {
+                    yearSelect.value = year;
+                }
+            } catch (e) {
+                console.error("Error updating year selector:", e);
+            }
+        }
         
         // Register a custom plugin for Chart.js to highlight bars
         Chart.register({
@@ -4802,6 +5164,9 @@
                         });
                         
                         initializeAnimation(data.map_tiles);
+                        
+                        // Ensure chart highlighting is synchronized
+                        setTimeout(synchronizeChartHighlighting, 500);
                         // Display initial statistics
                         if (data.map_tiles[0].statistics) {
                             displayStatistics(data.map_tiles[0].statistics);
@@ -4951,14 +5316,16 @@
         });
         
         // Save area button click handler
-        document.getElementById('save-area-btn').addEventListener('click', function() {
-            // Show loading screen
-            showLoading('Saving Selected Area', 'Processing and storing your selected area...');
-            if (!currentCoordinates) {
-                document.getElementById('results').innerHTML = '<p class="error">Please draw an area on the map first.</p>';
-                return;
-            }
-            
+        const saveAreaBtn = document.getElementById('save-area-btn');
+        if (saveAreaBtn) {
+            saveAreaBtn.addEventListener('click', function() {
+                // Show loading screen
+                showLoading('Saving Selected Area', 'Processing and storing your selected area...');
+                if (!currentCoordinates) {
+                    document.getElementById('results').innerHTML = '<p class="error">Please draw an area on the map first.</p>';
+                    return;
+                }
+                
             // Send request to server
             fetch('/save_area', {
                 method: 'POST',
@@ -4987,8 +5354,16 @@
                 hideLoading();
             });
         });
+        }
         
-        // Load waterways
+        // Initialize waterways toggle state first
+        const waterwaysToggle = document.getElementById('waterways-toggle');
+        if (waterwaysToggle && waterwaysToggle.checked) {
+            console.log('Setting waterways visible to true on initialization');
+            waterwaysLayer.visible = true;
+        }
+        
+        // Then load waterways
         loadWaterways();
 
         // Landcover classification and analysis
@@ -5436,7 +5811,7 @@ function getIGBPLandCover(coordinates, startDate, endDate) {
     .then(data => {
         if (data.success) {
             return data.igbp_data;
-        } else {
+                    } else {
             throw new Error(data.error || 'Failed to get IGBP land cover data');
         }
     });
@@ -6444,6 +6819,9 @@ function displayESAWorldCoverResults(worldcoverData) {
             // Initialize animation with the map tiles
             initializeAnimation(mapTiles);
             
+            // Ensure chart highlighting is synchronized
+            setTimeout(synchronizeChartHighlighting, 500);
+            
             // Update the results section
             const resultsDiv = document.getElementById('results');
             
@@ -6481,8 +6859,8 @@ function displayESAWorldCoverResults(worldcoverData) {
             
             // Show the Dynamic World legend
             document.getElementById('dynamic-world-legend').style.display = 'block';
-        
-        } catch (error) {
+                
+            } catch (error) {
             console.error('Error displaying Dynamic World time series:', error);
             const resultsDiv = document.getElementById('results');
             if (resultsDiv) {
@@ -7158,10 +7536,11 @@ function resetChartCanvases() {
         // Update the NDVI layer when the year is changed in Land Cover Classification
         document.getElementById('land-cover-year').addEventListener('change', function() {
             const selectedYear = this.value;
-            const modelType = document.querySelector('input[name="model-type"]:checked').value;
+            const modelType = document.querySelector('input[name="model-type"]:checked') ? 
+                document.querySelector('input[name="model-type"]:checked').value : null;
             
-            // Only update map layer for NDVI model
-            if (modelType === 'ndvi' && selectedYear && currentCoordinates) {
+            // Only update map layer for NDVI model if we have coordinates
+            if (modelType === 'ndvi' && selectedYear && typeof currentCoordinates !== 'undefined' && currentCoordinates) {
                 console.log(`Updating map layer for year: ${selectedYear}`);
                 
                 // Check if we have saved map tiles from time series analysis
@@ -7178,12 +7557,14 @@ function resetChartCanvases() {
                         // Add the new NDVI layer for the selected year
                         currentNdviLayer = L.tileLayer(selectedTile.tile_url);
                         
-                        // Get the current NDVI opacity
-                        const opacity = parseFloat(document.getElementById('ndvi-opacity').value) / 100;
+                        // Get the current NDVI opacity with fallback to 100%
+                        const opacityElement = document.getElementById('ndvi-opacity');
+                        const opacity = opacityElement ? parseFloat(opacityElement.value) / 100 : 1;
                         currentNdviLayer.setOpacity(opacity);
                         
-                        // Add to map if NDVI toggle is checked
-                        if (document.getElementById('ndvi-toggle').checked) {
+                        // Add to map if NDVI toggle is checked (or by default if toggle doesn't exist)
+                        const ndviToggle = document.getElementById('ndvi-toggle');
+                        if (!ndviToggle || ndviToggle.checked) {
                             currentNdviLayer.addTo(map);
                         }
                         
